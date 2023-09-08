@@ -1,4 +1,4 @@
-//mod alphazero;
+mod alphazero;
 mod games;
 mod leaderboard;
 mod players;

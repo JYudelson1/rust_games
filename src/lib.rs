@@ -1,5 +1,6 @@
+#![feature(generic_const_exprs)]
+
 use std::{fmt::Debug, rc::Rc};
-use dfdx::prelude::*;
 
 #[derive(Debug)]
 pub enum GameResult {
@@ -13,10 +14,12 @@ pub trait Game: Clone {
     type Board;
 
     const NUM_PLAYERS: usize;
+    const BOARD_SIZE: usize; //TODO: Make this concept more generic?
+    const CHANNELS: usize;
 
     fn new() -> Self;
     fn print(&self);
-    fn copy_board(&self) -> Self::Board;
+    fn nn_input(&self) -> dfdx::tensor::Tensor3D<{Self::CHANNELS}, {Self::BOARD_SIZE}, {Self::BOARD_SIZE}>;
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
     fn is_over(&self) -> bool;

@@ -1,4 +1,4 @@
-use dfdx::shapes::HasShape;
+use dfdx::prelude::*;
 use rust_games::{Game, GameResult, PlayerError, Strategy};
 use std::fmt;
 
@@ -146,10 +146,6 @@ impl Game for Othello {
         println!("Currently playing: {}", self.playing.to_color())
     }
 
-    fn copy_board(&self) -> Self::Board {
-        self.board.clone()
-    }
-
     fn legal_moves(&self) -> Vec<Self::Move> {
         let mut moves = vec![];
 
@@ -259,6 +255,44 @@ impl Game for Othello {
         } else {
             false
         }
+    }
+
+    const BOARD_SIZE: usize = 8;
+
+    const CHANNELS: usize = 3;
+
+    fn nn_input(&self) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }> {
+        let dev: Cpu = Default::default();
+        let mut black_channel = [[0.0; 8]; 8];
+        for (x, row) in self.board.iter().enumerate() {
+            for (y, tile) in row.iter().enumerate() {
+                black_channel[x][y] = match tile {
+                    OthelloState::Empty => 0.0,
+                    OthelloState::White => 0.0,
+                    OthelloState::Black => 1.0,
+                }
+            }
+        }
+
+        let mut white_channel = [[0.0; 8]; 8];
+        for (x, row) in self.board.iter().enumerate() {
+            for (y, tile) in row.iter().enumerate() {
+                white_channel[x][y] = match tile {
+                    OthelloState::Empty => 0.0,
+                    OthelloState::White => 1.0,
+                    OthelloState::Black => 0.0,
+                }
+            }
+        }
+
+        let player_num = match self.playing {
+            PlayerColor::White => 1.0_f32,
+            PlayerColor::Black => 0.0,
+        };
+
+        let player_channel = [[player_num; 8]; 8];
+
+        dev.tensor([black_channel, white_channel, player_channel])
     }
 }
 
