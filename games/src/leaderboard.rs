@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use lazy_pbar::pbar;
 use rand::{rngs::ThreadRng, seq::IteratorRandom};
-use rust_games::{Elo, Game, GameResult, Strategy};
+use shared::{Elo, Game, GameResult, Strategy};
 pub struct Leaderboard<G: Game> {
     pub strategies: HashMap<String, Strategy<G>>,
     rng: ThreadRng,
@@ -45,7 +45,7 @@ impl<'a, G: Game> Leaderboard<G> {
                 (*self.strategies.get_mut(&players[0]).unwrap()).elo =
                     elo_tie(player_1_elo, old_player_2_elo)
             }
-            GameResult::Ranking(ordered_names) => todo!(),
+            GameResult::Ranking(_ordered_names) => todo!(),
         }
     }
 

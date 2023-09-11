@@ -1,13 +1,16 @@
 use super::super::games::othello::OthelloMove;
 use crate::Othello;
-use rust_games::{Game, Player, PlayerError};
+use shared::{Game, Player, PlayerError};
 
 pub struct Greedy;
 
-impl Player<Othello> for Greedy {
-    fn new() -> Greedy {
+impl Greedy {
+    pub fn new() -> Greedy {
         Greedy
     }
+}
+
+impl Player<Othello> for Greedy {
     fn choose_move(&self, game: &Othello) -> Result<<Othello as Game>::Move, PlayerError> {
         let mut best_move: Option<<Othello as Game>::Move> = None;
         let mut flipped_of_best = 0;

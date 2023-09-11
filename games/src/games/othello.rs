@@ -1,8 +1,8 @@
 use dfdx::prelude::*;
-use rust_games::{Game, GameResult, PlayerError, Strategy};
+use shared::{Game, GameResult, PlayerError, Strategy};
 use std::fmt;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum OthelloState {
     Empty,
     White,
@@ -261,7 +261,9 @@ impl Game for Othello {
 
     const CHANNELS: usize = 3;
 
-    fn nn_input(&self) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }> {
+    fn to_nn_input(
+        &self,
+    ) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }> {
         let dev: Cpu = Default::default();
         let mut black_channel = [[0.0; 8]; 8];
         for (x, row) in self.board.iter().enumerate() {
@@ -294,12 +296,16 @@ impl Game for Othello {
 
         dev.tensor([black_channel, white_channel, player_channel])
     }
+
+    fn get_board(&self) -> Self::Board {
+        self.board
+    }
 }
 
 #[cfg(test)]
 mod test {
     use super::Othello;
-    use rust_games::Game;
+    use shared::Game;
 
     #[test]
     fn empty_board() {

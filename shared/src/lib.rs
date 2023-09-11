@@ -1,3 +1,4 @@
+#![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
 use std::{fmt::Debug, rc::Rc};
@@ -9,9 +10,9 @@ pub enum GameResult {
     Ranking(Vec<String>),
 }
 
-pub trait Game: Clone {
-    type Move: Copy;
-    type Board;
+pub trait Game: Clone + Debug {
+    type Move: Copy + Debug;
+    type Board: Eq;
 
     const NUM_PLAYERS: usize;
     const BOARD_SIZE: usize; //TODO: Make this concept more generic?
@@ -19,7 +20,10 @@ pub trait Game: Clone {
 
     fn new() -> Self;
     fn print(&self);
-    fn nn_input(&self) -> dfdx::tensor::Tensor3D<{Self::CHANNELS}, {Self::BOARD_SIZE}, {Self::BOARD_SIZE}>;
+    fn to_nn_input(
+        &self,
+    ) -> dfdx::tensor::Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }>;
+    fn get_board(&self) -> Self::Board;
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
     fn is_over(&self) -> bool;
@@ -28,14 +32,12 @@ pub trait Game: Clone {
         Self: Sized;
 }
 
+#[derive(Debug)]
 pub enum PlayerError {
     NoLegalMoves,
 }
 
 pub trait Player<G: Game> {
-    fn new() -> Self
-    where
-        Self: Sized;
     fn choose_move(&self, game: &G) -> Result<G::Move, PlayerError>;
 }
 
@@ -44,7 +46,7 @@ pub trait Player<G: Game> {
 pub struct Elo {
     pub rating: f64,
     pub games_played: usize,
-    pub wins: usize
+    pub wins: usize,
 }
 
 impl Elo {
@@ -52,7 +54,7 @@ impl Elo {
         Elo {
             rating: 1200.0,
             games_played: 0,
-            wins: 0
+            wins: 0,
         }
     }
 }
@@ -65,10 +67,10 @@ pub struct Strategy<G: Game> {
 }
 
 impl<G: Game> Strategy<G> {
-    pub fn new<P: 'static + Player<G>>(name: String) -> Self {
+    pub fn new<P: 'static + Player<G>>(name: String, player: P) -> Self {
         Strategy {
             name: name,
-            player: Rc::new(P::new()),
+            player: Rc::new(player),
             elo: Elo::new(),
         }
     }
