@@ -1,11 +1,9 @@
-use dfdx::prelude::{BuildOnDevice, Cpu, Tensor, Tensor3D};
-use dfdx::prelude::{Module, TensorCollection, ZeroSizedModule};
-use dfdx::shapes::{Const, Rank0};
+use dfdx::prelude::*;
+use dfdx::tensor::CpuError;
 use rust_games_shared::{Game, Player};
 
 use alphazero::MCTS;
 use std::cell::RefCell;
-use std::rc::Rc;
 
 pub struct AlphaZero<
     G: Game,
@@ -13,7 +11,7 @@ pub struct AlphaZero<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
             Error = dfdx::prelude::CpuError,
-        > + TensorCollection<f32, Cpu>,
+        >,
 > where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
@@ -25,7 +23,7 @@ impl<
         M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
-                Error = dfdx::prelude::CpuError,
+                Error = CpuError,
             > + TensorCollection<f32, Cpu>,
     > AlphaZero<G, M>
 where
@@ -53,8 +51,8 @@ impl<
         M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
-                Error = dfdx::prelude::CpuError,
-            > + TensorCollection<f32, Cpu>,
+                Error = CpuError,
+            >,
     > Player<G> for AlphaZero<G, M>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
@@ -95,5 +93,23 @@ mod tests {
             "/Applications/Python 3.4/MyScripts/rust_games/games/test.safetensors",
             &dev,
         );
+    }
+
+    #[test]
+    fn load_player_test() {
+        let mut qg = Othello::new();
+        let dev: Cpu = Default::default();
+        // let player: AlphaZero<Othello, BoardGameModel<Othello>> =
+        //     AlphaZero::new_from_file("test.safetensors", 1.0, &dev);
+        let mcts = MCTS::new_from_file::<BoardGameModel<Othello>>(
+            g.clone(),
+            1.0,
+            "test.safetensors",
+            &dev,
+        );
+        let player = AlphaZero { mcts: mcts.into() };
+        let m = player.choose_move(&g);
+        g.make_move(m.unwrap());
+        g.print();
     }
 }

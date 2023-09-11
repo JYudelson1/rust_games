@@ -200,12 +200,11 @@ where
     pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu) -> Self
     where M: TensorCollection<f32, Cpu>
         {
-            // let mut file_name = env!("CARGO_MANIFEST_DIR").to_string();
-            // file_name.push_str("/data/");
-            // file_name.push_str(model_name);
+            let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
+            file_name.push_str(model_name);
 
             let mut model = dev.build_module::<B, f32>();
-            <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, model_name).unwrap();
+            <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
         
             Self::new(root, model, temperature)
     }

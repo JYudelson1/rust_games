@@ -3,8 +3,10 @@
 
 mod leaderboard;
 
+use alphazero::BoardGameModel;
 use leaderboard::Leaderboard;
 use rust_games_games::Othello;
+use rust_games_players::AlphaZero;
 use rust_games_players::Corners;
 use rust_games_players::Greedy;
 use rust_games_players::Random;
@@ -15,6 +17,7 @@ fn main() {
     let rand_player_1 = Strategy::new("Random1".to_string(), Random::new());
     let rand_player_2 = Strategy::new("Random2".to_string(), Random::new());
     let greedy_player = Strategy::new("Greedy".to_string(), Greedy::new());
+    //let dumb_az_player = Strategy::new("Dumb Alphazero".to_string(), player);
 
     let players = vec![corner_player, rand_player_1, rand_player_2, greedy_player];
     //println!("{:?}", Othello::play_full_game(players, true));
