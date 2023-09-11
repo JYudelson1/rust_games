@@ -47,8 +47,7 @@ where
 
     fn spawn_children(
         &mut self,
-        model: Rc<
-            dyn Module<
+        model: &impl Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (
                     Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
@@ -56,7 +55,6 @@ where
                 ),
                 Error = CpuError,
             >,
-        >,
     ) {
         assert!(self.children.is_empty());
 
@@ -82,25 +80,30 @@ where
     }
 }
 
-pub struct MCTS<G: Game>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
-    root: Cell<ActionNode<G>>,
-    model: Rc<
-        dyn Module<
+pub struct MCTS<G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
                 Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
                 Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
             ),
             Error = dfdx::prelude::CpuError,
-        >,
-    >,
+        >>
+where
+    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+{
+    root: Cell<ActionNode<G>>,
+    model: M,
     temperature: f32,
 }
 
-impl<'a, G: Game> MCTS<G>
+impl<'a, G: Game, M: Module<
+            Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+            Output = (
+                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<1>,), f32, Cpu>,
+            ),
+            Error = CpuError,
+        >> MCTS<G, M>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
@@ -129,7 +132,7 @@ where
 
                 //Expand leaf node at non-terminal state
                 if !current.post_state.is_over() {
-                    current.spawn_children(self.model.clone());
+                    current.spawn_children(&self.model);
                 }
             }
 
@@ -175,16 +178,7 @@ where
 
     pub fn new(
         root: G,
-        model: Rc<
-            dyn Module<
-                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-                Output = (
-                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
-                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
-                ),
-                Error = CpuError,
-            >,
-        >,
+        model: M,
         temperature: f32,
     ) -> Self {
         let (p, v) = model.forward(root.to_nn_input());
@@ -201,5 +195,14 @@ where
             model: model,
             temperature: temperature,
         }
+    }
+
+    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, file_name: &str, dev: &Cpu) -> Self
+    where M: TensorCollection<f32, Cpu>
+        {
+            let mut model = dev.build_module::<B, f32>();
+            <M as dfdx::nn::LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, file_name).unwrap();
+        
+            Self::new(root, model, temperature)
     }
 }

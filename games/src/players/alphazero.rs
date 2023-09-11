@@ -1,41 +1,55 @@
-use dfdx::prelude::Module;
+use dfdx::prelude::{Module, TensorCollection, ZeroSizedModule};
 use dfdx::shapes::{Const, Rank0};
-use dfdx::tensor::{Tensor, Tensor3D};
+use dfdx::tensor::{Cpu, Tensor, Tensor3D};
 use shared::{Game, Player};
 
 use alphazero::MCTS;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-pub struct AlphaZero<G: Game>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
-    mcts: RefCell<MCTS<G>>,
-}
-
-impl<G: Game> AlphaZero<G>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
-    pub fn new(
-        model: impl Module<
+pub struct AlphaZero<G: Game, M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (
                     Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
                     Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
                 ),
                 Error = dfdx::prelude::CpuError,
-            > + 'static,
+            >>
+where
+    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+{
+    mcts: RefCell<MCTS<G, M>>,
+}
+
+impl<G: Game, M: Module<
+                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+                Output = (
+                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                ),
+                Error = dfdx::prelude::CpuError,
+            >> AlphaZero<G, M>
+where
+    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+{
+    pub fn new(
+        model: M,
         temperature: f32,
     ) -> Self {
         Self {
-            mcts: MCTS::new(G::new(), Rc::new(model), temperature).into(),
+            mcts: MCTS::new(G::new(), model, temperature).into(),
         }
     }
 }
 
-impl<G: Game> Player<G> for AlphaZero<G>
+impl<G: Game, M: Module<
+                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+                Output = (
+                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                ),
+                Error = dfdx::prelude::CpuError,
+            > + TensorCollection<f32, Cpu>> Player<G> for AlphaZero<G, M>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
