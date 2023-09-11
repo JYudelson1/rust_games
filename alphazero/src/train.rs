@@ -1,6 +1,5 @@
-use crate::nn::BoardGameModel;
 use dfdx::{optim::Adam, prelude::*};
-use shared::Game;
+use rust_games_shared::Game;
 
 struct TrainingExample<G: Game>
 where

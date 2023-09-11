@@ -1,7 +1,6 @@
-use super::super::games::othello::OthelloMove;
-use crate::Othello;
 use rand::seq::SliceRandom;
-use shared::{Game, Player, PlayerError};
+use rust_games_games::Othello;
+use rust_games_shared::{Game, Player, PlayerError};
 
 pub struct Corners;
 
@@ -16,8 +15,10 @@ impl Player<Othello> for Corners {
         let mut rng = rand::thread_rng();
 
         let moves = game.legal_moves();
-        let edges: Vec<OthelloMove> = moves.iter().filter(|m| m.is_edge()).copied().collect();
-        let corners: Vec<OthelloMove> = moves.iter().filter(|m| m.is_corner()).copied().collect();
+        let edges: Vec<<Othello as Game>::Move> =
+            moves.iter().filter(|m| m.is_edge()).copied().collect();
+        let corners: Vec<<Othello as Game>::Move> =
+            moves.iter().filter(|m| m.is_corner()).copied().collect();
 
         let m = if !corners.is_empty() {
             corners.choose(&mut rng)

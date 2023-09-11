@@ -1,6 +1,6 @@
-use super::super::games::othello::OthelloMove;
-use crate::Othello;
-use shared::{Game, Player, PlayerError};
+use rust_games_games::Othello;
+use rust_games_games::OthelloMove;
+use rust_games_shared::{Game, Player, PlayerError};
 
 pub struct Greedy;
 

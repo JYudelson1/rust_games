@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use lazy_pbar::pbar;
 use rand::{rngs::ThreadRng, seq::IteratorRandom};
-use shared::{Elo, Game, GameResult, Strategy};
+use rust_games_shared::{Elo, Game, GameResult, Strategy};
 pub struct Leaderboard<G: Game> {
     pub strategies: HashMap<String, Strategy<G>>,
     rng: ThreadRng,

@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use shared::Game;
+use rust_games_shared::Game;
 
 //TODO: Make more generic??
 type BoardGameBaseModel<G: Game> = (

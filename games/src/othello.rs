@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use shared::{Game, GameResult, PlayerError, Strategy};
+use rust_games_shared::{Game, GameResult, PlayerError, Strategy};
 use std::fmt;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -305,7 +305,7 @@ impl Game for Othello {
 #[cfg(test)]
 mod test {
     use super::Othello;
-    use shared::Game;
+    use rust_games_shared::Game;
 
     #[test]
     fn empty_board() {

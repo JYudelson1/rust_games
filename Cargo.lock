@@ -17,7 +17,7 @@ version = "0.1.0"
 dependencies = [
  "dfdx",
  "lazy-pbar",
- "shared",
+ "rust_games_shared",
 ]
 
 [[package]]
@@ -548,10 +548,37 @@ name = "rust_games"
 version = "0.1.0"
 dependencies = [
  "alphazero",
- "dfdx",
  "lazy-pbar",
  "rand",
- "shared",
+ "rust_games_games",
+ "rust_games_players",
+ "rust_games_shared",
+]
+
+[[package]]
+name = "rust_games_games"
+version = "0.1.0"
+dependencies = [
+ "dfdx",
+ "rust_games_shared",
+]
+
+[[package]]
+name = "rust_games_players"
+version = "0.1.0"
+dependencies = [
+ "alphazero",
+ "dfdx",
+ "rand",
+ "rust_games_games",
+ "rust_games_shared",
+]
+
+[[package]]
+name = "rust_games_shared"
+version = "0.1.0"
+dependencies = [
+ "dfdx",
 ]
 
 [[package]]
@@ -611,13 +638,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "shared"
-version = "0.1.0"
-dependencies = [
- "dfdx",
 ]
 
 [[package]]

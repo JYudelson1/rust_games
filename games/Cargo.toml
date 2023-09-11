@@ -1,13 +1,10 @@
 [package]
-name = "rust_games"
+name = "rust_games_games"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = "0.8.5"
-lazy-pbar = "0.2.0"
+rust_games_shared = {path = "../shared"}
 dfdx = "0.13.0"
-alphazero = {path = "../alphazero"}
-shared = {path = "../shared"}

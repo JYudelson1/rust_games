@@ -1,16 +1,14 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-mod games;
 mod leaderboard;
-mod players;
 
-use games::othello::Othello;
 use leaderboard::Leaderboard;
-use players::Corners;
-use players::Greedy;
-use players::Random;
-use shared::Strategy;
+use rust_games_games::Othello;
+use rust_games_players::Corners;
+use rust_games_players::Greedy;
+use rust_games_players::Random;
+use rust_games_shared::Strategy;
 
 fn main() {
     let corner_player = Strategy::new("Corners".to_string(), Corners::new());

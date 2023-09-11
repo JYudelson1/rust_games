@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 lazy-pbar = "0.2.0"
 dfdx = {version = "0.13.0", features = ["safetensors"]}
-shared = { path = "../shared"}
+rust_games_shared = { path = "../shared"}

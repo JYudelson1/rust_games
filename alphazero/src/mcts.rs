@@ -4,7 +4,7 @@ use dfdx::prelude::*;
 
 use lazy_pbar::pbar;
 
-use shared::{Game, PlayerError};
+use rust_games_shared::{Game, PlayerError};
 
 #[derive(Clone, Debug)]
 struct ActionNode<G: Game> {
@@ -197,11 +197,15 @@ where
         }
     }
 
-    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, file_name: &str, dev: &Cpu) -> Self
+    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu) -> Self
     where M: TensorCollection<f32, Cpu>
         {
+            // let mut file_name = env!("CARGO_MANIFEST_DIR").to_string();
+            // file_name.push_str("/data/");
+            // file_name.push_str(model_name);
+
             let mut model = dev.build_module::<B, f32>();
-            <M as dfdx::nn::LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, file_name).unwrap();
+            <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, model_name).unwrap();
         
             Self::new(root, model, temperature)
     }

@@ -1,5 +1,5 @@
 use rand::seq::SliceRandom;
-use shared::{Game, Player, PlayerError};
+use rust_games_shared::{Game, Player, PlayerError};
 
 use std::marker::PhantomData;
 
