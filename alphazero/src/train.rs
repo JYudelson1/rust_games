@@ -27,6 +27,16 @@ where
         let move_counts_tensor = dev.tensor_from_vec(move_counts.clone(), (move_counts.len(),));
         move_counts_tensor.softmax()
     }
+
+    pub fn new(
+        position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>, 
+        winner: f32, 
+        next_move_probs: Vec<(
+        Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+        usize,
+    )>) -> Self {
+        TrainingExample { position, winner, next_move_probs }
+    }
 }
 
 fn to_model_probs<

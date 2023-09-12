@@ -6,6 +6,8 @@ use lazy_pbar::pbar;
 
 use rust_games_shared::{Game, PlayerError};
 
+use crate::TrainingExample;
+
 #[derive(Clone, Debug)]
 struct ActionNode<G: Game> {
     pub action: Option<G::Move>,
@@ -79,6 +81,15 @@ where
 
             self.children.push(new_node);
         }
+    }
+
+    pub fn to_example(&self, winner: f32) -> TrainingExample<G> {
+        let position = self.post_state.to_nn_input();
+        let next_move_probs = self.children
+            .iter()
+            .map(|node| (node.post_state.to_nn_input(), node.n))
+            .collect();
+        TrainingExample::new(position, winner, next_move_probs)
     }
 }
 
