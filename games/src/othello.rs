@@ -1,6 +1,6 @@
 use dfdx::prelude::*;
 use rust_games_shared::{Game, GameResult, Strategy};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum OthelloState {
@@ -9,8 +9,8 @@ pub enum OthelloState {
     Black,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-enum PlayerColor {
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
+pub enum PlayerColor {
     White,
     Black,
 }
@@ -124,6 +124,8 @@ impl Game for Othello {
 
     type Board = [[OthelloState; 8]; 8];
 
+    type PlayerId = PlayerColor;
+
     const NUM_PLAYERS: usize = 2;
 
     fn new() -> Othello {
@@ -198,22 +200,18 @@ impl Game for Othello {
         // self
     }
 
-    fn play_full_game<'a>(strategies: Vec<&Strategy<Othello>>, verbose: bool) -> GameResult {
+    fn play_full_game<'a>(strategies: Vec<&Strategy<Self>>, verbose: bool) -> GameResult {
         assert!(strategies.len() == Self::NUM_PLAYERS);
-        let black = &strategies[0].player;
-        let white = &strategies[1].player;
+        let player_map: HashMap<Self::PlayerId, &Strategy<Self>> =
+            Self::associate_players(strategies);
 
         let mut game = Self::new();
         while !game.is_over() {
-            let next_move = if game.playing == PlayerColor::Black {
-                black.choose_move(&game)
-            } else {
-                white.choose_move(&game)
-            };
+            let current_player = game.current_player();
+            let next_move = (*player_map.get(&current_player).unwrap()).player.choose_move(&game);
             match next_move {
                 Ok(m) => {
                     game.make_move(m);
-                    if !matches!(m, OthelloMove::Pass) {}
                     if verbose {
                         game.print()
                     }
@@ -229,25 +227,9 @@ impl Game for Othello {
             }
         }
 
-        // Count up
-        let mut black_tiles = 0;
-        let mut white_tiles = 0;
-        for x in 0..8 {
-            for y in 0..8 {
-                if game.board[y][x] == OthelloState::Black {
-                    black_tiles += 1
-                } else if game.board[y][x] == OthelloState::White {
-                    white_tiles += 1
-                }
-            }
-        }
-
-        if black_tiles < white_tiles {
-            GameResult::Winner(strategies[1].name.clone())
-        } else if black_tiles == white_tiles {
-            GameResult::Tie
-        } else {
-            GameResult::Winner(strategies[0].name.clone())
+        match game.get_winner() {
+            Some(player_id) => GameResult::Winner(player_map.get(&player_id).unwrap().name.clone()),
+            None => GameResult::Tie,
         }
     }
 
@@ -303,6 +285,39 @@ impl Game for Othello {
 
     fn get_board(&self) -> Self::Board {
         self.board
+    }
+
+    fn get_winner(&self) -> Option<Self::PlayerId> {
+        // Count up
+        let mut black_tiles = 0;
+        let mut white_tiles = 0;
+        for x in 0..8 {
+            for y in 0..8 {
+                if self.board[y][x] == OthelloState::Black {
+                    black_tiles += 1
+                } else if self.board[y][x] == OthelloState::White {
+                    white_tiles += 1
+                }
+            }
+        }
+
+        if black_tiles < white_tiles {
+            Some(PlayerColor::White)
+        } else if black_tiles == white_tiles {
+            None
+        } else {
+            Some(PlayerColor::Black)
+        }
+    }
+
+    fn current_player(&self) -> Self::PlayerId {
+        self.playing
+    }
+
+    fn associate_players(
+        players: Vec<&Strategy<Self>>,
+    ) -> HashMap<Self::PlayerId, &Strategy<Self>> {
+        todo!()
     }
 }
 

@@ -1,7 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use std::{fmt::Debug, rc::Rc};
+use std::{fmt::Debug, rc::Rc, collections::HashMap, hash::Hash};
 
 #[derive(Debug)]
 pub enum GameResult {
@@ -13,6 +13,7 @@ pub enum GameResult {
 pub trait Game: Clone + Debug {
     type Move: Copy + Debug;
     type Board: Eq;
+    type PlayerId: Copy + Hash + Eq;
 
     const NUM_PLAYERS: usize;
     const BOARD_SIZE: usize; //TODO: Make this concept more generic?
@@ -27,6 +28,9 @@ pub trait Game: Clone + Debug {
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
     fn is_over(&self) -> bool;
+    fn get_winner(&self) -> Option<Self::PlayerId>;
+    fn current_player(&self) -> Self::PlayerId;
+    fn associate_players(players: Vec<&Strategy<Self>>) -> HashMap<Self::PlayerId, &Strategy<Self>>;
     fn play_full_game<'a>(players: Vec<&Strategy<Self>>, verbose: bool) -> GameResult
     where
         Self: Sized;
