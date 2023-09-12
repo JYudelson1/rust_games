@@ -179,7 +179,6 @@ impl Game for Othello {
             OthelloMove::Move(x, y) => {
                 self.last_was_pass = false;
                 for tile in self.tiles_would_flip(m) {
-                //TODO: Make sure the indices arent flipped
                     match tile {
                         OthelloMove::Pass => {},
                         OthelloMove::Move(x, y) => {self.board[y][x] = self.playing.to_color();}
