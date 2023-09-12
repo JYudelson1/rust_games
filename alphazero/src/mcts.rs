@@ -15,7 +15,6 @@ struct ActionNode<G: Game> {
     q: f32,   //q-value
     n: usize, //number of times this action was taken
     v: f32,   // initial estimate by the model of the position's value
-    p: f32,   // prior probability this move is chosen
     children: Vec<Self>,
 }
 
@@ -67,7 +66,7 @@ where
             let mut subgame = self.post_state.clone();
             subgame.make_move(action);
 
-            let (p, v) = model.forward(subgame.to_nn_input());
+            let (_, v) = model.forward(subgame.to_nn_input());
 
             let new_node: ActionNode<G> = ActionNode {
                 action: Some(action),
@@ -75,7 +74,6 @@ where
                 q: 0.0,
                 n: 0,
                 v: v.array()[0],
-                p: p.array()[0],
                 children: vec![],
             };
 
@@ -207,7 +205,7 @@ where
         model: M,
         temperature: f32,
     ) -> Self {
-        let (p, v) = model.forward(root.to_nn_input());
+        let (_, v) = model.forward(root.to_nn_input());
         Self {
             root: Cell::new(ActionNode {
                 action: None,
@@ -215,7 +213,6 @@ where
                 q: 0.0,
                 n: 0,
                 v: v.array()[0],
-                p: p.array()[0],
                 children: vec![],
             }),
             model: model,
@@ -246,14 +243,13 @@ where
 
     pub fn reset_board(&mut self) {
         let g = G::new();
-        let (p, v) = self.model.forward(g.to_nn_input());
+        let (_, v) = self.model.forward(g.to_nn_input());
         self.root.replace(ActionNode {
             action: None,
             post_state: g,
             q: 0.0,
             n: 0,
             v: v.array()[0],
-            p: p.array()[0],
             children: vec![],
         });
     }
