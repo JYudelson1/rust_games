@@ -39,6 +39,7 @@ pub enum PlayerError {
 
 pub trait Player<G: Game> {
     fn choose_move(&self, game: &G) -> Result<G::Move, PlayerError>;
+    fn reset(&mut self) {}
 }
 
 //TODO: Playing against each other, ELO, etc

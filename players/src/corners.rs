@@ -15,6 +15,10 @@ impl Player<Othello> for Corners {
         let mut rng = rand::thread_rng();
 
         let moves = game.legal_moves();
+        if moves.is_empty() {
+            return Err(PlayerError::NoLegalMoves);
+        }
+        
         let edges: Vec<<Othello as Game>::Move> =
             moves.iter().filter(|m| m.is_edge()).copied().collect();
         let corners: Vec<<Othello as Game>::Move> =
@@ -27,9 +31,6 @@ impl Player<Othello> for Corners {
         } else {
             moves.choose(&mut rng)
         };
-        match m {
-            Some(mv) => Ok(*mv),
-            None => Err(PlayerError::NoLegalMoves),
-        }
+        Ok(*m.unwrap())
     }
 }

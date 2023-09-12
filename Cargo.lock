@@ -21,6 +21,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "alphazero_train"
+version = "0.1.0"
+dependencies = [
+ "alphazero",
+ "dfdx",
+ "rust_games_games",
+ "rust_games_shared",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -544,22 +554,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 
 [[package]]
-name = "rust_games"
-version = "0.1.0"
-dependencies = [
- "alphazero",
- "lazy-pbar",
- "rand",
- "rust_games_games",
- "rust_games_players",
- "rust_games_shared",
-]
-
-[[package]]
 name = "rust_games_games"
 version = "0.1.0"
 dependencies = [
  "dfdx",
+ "rust_games_shared",
+]
+
+[[package]]
+name = "rust_games_main"
+version = "0.1.0"
+dependencies = [
+ "alphazero",
+ "dfdx",
+ "lazy-pbar",
+ "rand",
+ "rust_games_games",
+ "rust_games_players",
  "rust_games_shared",
 ]
 

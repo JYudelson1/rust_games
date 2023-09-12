@@ -15,7 +15,7 @@ pub struct AlphaZero<
 > where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
-    mcts: RefCell<MCTS<G, M>>,
+    pub mcts: RefCell<MCTS<G, M>>,
 }
 
 impl<
@@ -60,6 +60,10 @@ where
     fn choose_move(&self, game: &G) -> Result<<G as Game>::Move, rust_games_shared::PlayerError> {
         self.mcts.borrow_mut().choose_move(game)
     }
+
+    fn reset(&mut self) {
+        self.mcts.get_mut().reset_board();
+    }
 }
 
 #[cfg(test)]
@@ -80,7 +84,7 @@ mod tests {
         g.make_move(m.unwrap());
         g.print();
 
-        nn.save_safetensors("test.safetensors").unwrap();
+        player.mcts.into_inner().save_nn("test.safetensors");
     }
 
     #[test]
@@ -90,14 +94,14 @@ mod tests {
         MCTS::new_from_file::<BoardGameModel<Othello>>(
             g,
             1.0,
-            "/Applications/Python 3.4/MyScripts/rust_games/games/test.safetensors",
+            "test.safetensors",
             &dev,
         );
     }
 
     #[test]
     fn load_player_test() {
-        let mut qg = Othello::new();
+        let mut g = Othello::new();
         let dev: Cpu = Default::default();
         // let player: AlphaZero<Othello, BoardGameModel<Othello>> =
         //     AlphaZero::new_from_file("test.safetensors", 1.0, &dev);

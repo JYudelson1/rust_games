@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use lazy_pbar::pbar;
 use rand::{rngs::ThreadRng, seq::IteratorRandom};
-use rust_games_shared::{Elo, Game, GameResult, Strategy};
+use rust_games_shared::{Elo, Game, GameResult, Player, Strategy};
 pub struct Leaderboard<G: Game> {
     pub strategies: HashMap<String, Strategy<G>>,
     rng: ThreadRng,
@@ -50,12 +50,21 @@ impl<'a, G: Game> Leaderboard<G> {
     }
 
     pub fn play_random_game(&mut self, verbose: bool) {
-        let players = self
+        let mut players = self
             .strategies
-            .values()
+            .values_mut()
             .choose_multiple(&mut self.rng, G::NUM_PLAYERS);
-        let result = G::play_full_game(players.clone(), verbose);
         let player_names: Vec<String> = players.iter().map(|p| p.name.clone()).collect();
+        for player in players.iter_mut() {
+            Rc::<(dyn Player<G> + 'static)>::get_mut(&mut player.player)
+                .unwrap()
+                .reset();
+        }
+        let players = players.iter().map(|strat| &**strat).collect();
+
+        //println!("{:?}", player_names);
+        let result = G::play_full_game(players, verbose);
+
         self.update(player_names, result);
     }
 

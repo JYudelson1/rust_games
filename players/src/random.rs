@@ -17,12 +17,13 @@ impl<G: Game> Player<G> for Random<G> {
     fn choose_move(&self, game: &G) -> Result<<G as Game>::Move, PlayerError> {
         let moves = game.legal_moves();
 
+        if moves.is_empty() {
+            return Err(PlayerError::NoLegalMoves);
+        }
+
         let mut rng = rand::thread_rng();
 
         let m = moves.choose(&mut rng);
-        match m {
-            Some(mv) => Ok(*mv),
-            None => Err(PlayerError::NoLegalMoves),
-        }
+        Ok(*m.unwrap())
     }
 }

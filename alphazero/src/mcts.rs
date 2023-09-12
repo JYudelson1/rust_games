@@ -1,4 +1,4 @@
-use std::{cell::Cell, rc::Rc};
+use std::cell::Cell;
 
 use dfdx::prelude::*;
 
@@ -56,15 +56,17 @@ where
                 Error = CpuError,
             >,
     ) {
-        assert!(self.children.is_empty());
+        if !self.children.is_empty(){
+            return;
+        }
 
         let next_actions = self.post_state.legal_moves();
         for action in next_actions {
             let mut subgame = self.post_state.clone();
             subgame.make_move(action);
-            // TODO: terminal states???
+
             let (p, v) = model.forward(subgame.to_nn_input());
-            // self.model.forward(subgame.nn_input());
+
             let new_node: ActionNode<G> = ActionNode {
                 action: Some(action),
                 post_state: subgame,
@@ -92,8 +94,8 @@ where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
     root: Cell<ActionNode<G>>,
-    model: M,
-    temperature: f32,
+    pub model: M,
+    pub temperature: f32,
 }
 
 impl<'a, G: Game, M: Module<
@@ -113,12 +115,12 @@ where
         // expand it, backup the v-values to update q's and n's
         for _ in pbar(0..n) {
             let mut path: Vec<usize> = vec![];
-            let mut child_v = 0.0;
+            let child_v;
 
             {
                 // Inner-ing scope to make compiler happy
                 let mut current = self.root.get_mut();
-                let mut index = 0;
+                let mut index;
 
                 while !current.children.is_empty() {
                     (current, index) = current
@@ -148,30 +150,43 @@ where
 
     pub fn choose_move(&mut self, game: &G) -> Result<G::Move, PlayerError> {
         // First, update on opponent's move (if applicable)
-        if game.get_board() != self.root.get_mut().post_state.get_board() {
+        let root = self.root.get_mut();
+        if game.get_board() != root.post_state.get_board() {
             // If the game board is a child of this state:
             // Use that subtree as the root
+            // But first, make sure children are spawned
+            root.spawn_children(&self.model);
             let mut found = None;
             for child in self.root.get_mut().children.iter() {
                 if child.post_state.get_board() == game.get_board() {
                     found = Some(child);
                 }
             }
+
+            // Change the root node to the current game
+            // (Which is a child of the old root)
             self.root = Cell::new(
                 found
                     .expect(
                         "The game given as input is not one move after the game stored in the MCTS",
                     )
                     .clone(),
-            )
+            );
             // Else:
             // Should maybe use the new game as a new root
             // But for now, panic
         }
-        self.traverse(1600);
-        let best_child = self.root.get_mut().best_child(self.temperature);
+        self.traverse(100);
+        let r = self.root.get_mut();
+        let best_child = r.best_child(self.temperature);
+
         match best_child {
-            Some((child, _)) => Ok(child.action.unwrap()),
+            Some((child, _)) => {
+                let action = child.action.unwrap();
+                // Update board based on move made
+                *r = child.clone();
+                Ok(action)
+            },
             None => Err(PlayerError::NoLegalMoves),
         }
     }
@@ -207,5 +222,28 @@ where
             <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
         
             Self::new(root, model, temperature)
+    }
+
+    pub fn save_nn(&self, model_name: &str) 
+    where M: TensorCollection<f32, Cpu>
+    {
+        let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
+        file_name.push_str(model_name);
+
+        self.model.save_safetensors("test.safetensors").unwrap();
+    }
+
+    pub fn reset_board(&mut self) {
+        let g = G::new();
+        let (p, v) = self.model.forward(g.to_nn_input());
+        self.root.replace(ActionNode {
+            action: None,
+            post_state: g,
+            q: 0.0,
+            n: 0,
+            v: v.array()[0],
+            p: p.array()[0],
+            children: vec![],
+        });
     }
 }

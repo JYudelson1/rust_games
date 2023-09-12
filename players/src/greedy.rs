@@ -13,22 +13,33 @@ impl Greedy {
 impl Player<Othello> for Greedy {
     fn choose_move(&self, game: &Othello) -> Result<<Othello as Game>::Move, PlayerError> {
         let mut best_move: Option<<Othello as Game>::Move> = None;
-        let mut flipped_of_best = 0;
+        let mut flipped_of_best: Option<usize> = None;
 
-        for x in 0..8 {
-            for y in 0..8 {
-                let new_move = OthelloMove::new(x, y);
-                let amt = game.tiles_would_flip(new_move).len();
-                if amt > flipped_of_best {
-                    best_move = Some(new_move);
-                    flipped_of_best = amt;
+        for mv in game.legal_moves() {
+            match mv {
+                OthelloMove::Pass => return Ok(mv),
+                OthelloMove::Move(_, _) => {
+                    let amt = game.tiles_would_flip(mv).len();
+                    match flipped_of_best {
+                        Some(flipped_num) => {
+                            if amt > flipped_num {
+                                best_move = Some(mv);
+                                flipped_of_best = Some(amt);
+                            }
+                        }
+                        None => {
+                            flipped_of_best = Some(amt);
+                            best_move = Some(mv);
+                        }
+                    }
                 }
             }
         }
 
-        match best_move {
+        match best_move{
             Some(mv) => Ok(mv),
             None => Err(PlayerError::NoLegalMoves),
         }
+        
     }
 }

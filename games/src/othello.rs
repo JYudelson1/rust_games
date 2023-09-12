@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use rust_games_shared::{Game, GameResult, PlayerError, Strategy};
+use rust_games_shared::{Game, GameResult, Strategy};
 use std::fmt;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -36,23 +36,26 @@ impl fmt::Display for OthelloState {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct OthelloMove {
-    x: usize,
-    y: usize,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OthelloMove {
+    Pass,
+    Move(usize, usize),
 }
 
 impl OthelloMove {
     pub fn is_corner(&self) -> bool {
-        (self.x == 0 || self.x == 7) && (self.y == 0 || self.y == 7)
+        match self {
+            OthelloMove::Pass => false,
+            &OthelloMove::Move(x, y) => (x == 0 || x == 7) && (y == 0 || y == 7),
+        }
     }
 
     pub fn is_edge(&self) -> bool {
-        self.x == 0 || self.x == 7 || self.y == 0 || self.y == 7
-    }
-
-    pub fn new(x: usize, y: usize) -> Self {
-        OthelloMove { x, y }
+        match self {
+            OthelloMove::Pass => false,
+            &OthelloMove::Move(x, y) => x == 0 || x == 7 || y == 0 || y == 7,
+        }
+        
     }
 }
 
@@ -60,15 +63,18 @@ impl OthelloMove {
 pub struct Othello {
     board: [[OthelloState; 8]; 8],
     playing: PlayerColor,
+    last_was_pass: bool
 }
 
 impl Othello {
     pub fn tiles_would_flip(&self, m: OthelloMove) -> Vec<OthelloMove> {
         let mut tiles = vec![];
-
-        if self.board[m.y][m.x] != OthelloState::Empty {
-            return tiles;
-        }
+        match m {
+            OthelloMove::Pass => tiles,
+            OthelloMove::Move(x, y) => {
+                if self.board[y][x] != OthelloState::Empty {
+                    return tiles;
+                }
         // travel in each direction
         for dx in [-1i8, 0, 1] {
             for dy in [-1i8, 0, 1] {
@@ -78,10 +84,10 @@ impl Othello {
 
                 for i in 1.. {
                     // If the surrounding tile is of the same color, or empty, or a wall, ignore it
-                    if (m.y as i8 + dy * i) < 0
-                        || (m.y as i8 + dy * i) > 7
-                        || (m.x as i8 + dx * i) < 0
-                        || (m.x as i8 + dx * i) > 7
+                    if (y as i8 + dy * i) < 0
+                        || (y as i8 + dy * i) > 7
+                        || (x as i8 + dx * i) < 0
+                        || (x as i8 + dx * i) > 7
                     {
                         break;
                     }
@@ -89,7 +95,7 @@ impl Othello {
 
                     // If the next tile's empty, terminate quietly
                     let tile_state =
-                        self.board[(m.y as i8 + dy * i) as usize][(m.x as i8 + dx * i) as usize];
+                        self.board[(y as i8 + dy * i) as usize][(x as i8 + dx * i) as usize];
 
                     if tile_state == OthelloState::Empty {
                         break;
@@ -101,19 +107,16 @@ impl Othello {
                     // If of the player's color, terminate and add all the prev tiles to tiles
                     if tile_state == self.playing.to_color() {
                         for d in 1..i {
-                            tiles.push(OthelloMove {
-                                x: (m.x as i8 + (dx * d)) as usize,
-                                y: (m.y as i8 + (dy * d)) as usize,
-                            });
+                            tiles.push(OthelloMove::Move((x as i8 + (dx * d)) as usize, (y as i8 + (dy * d)) as usize));
                         }
                         break;
                     }
                 }
             }
         }
-
-        tiles
-    }
+    tiles}
+        }
+}
 }
 
 impl Game for Othello {
@@ -127,6 +130,7 @@ impl Game for Othello {
         let mut g = Othello {
             board: [[OthelloState::Empty; 8]; 8],
             playing: PlayerColor::Black,
+            last_was_pass: false
         };
         g.board[3][3] = OthelloState::Black;
         g.board[3][4] = OthelloState::White;
@@ -151,23 +155,41 @@ impl Game for Othello {
 
         for x in 0..8 {
             for y in 0..8 {
-                let new_move = OthelloMove { x, y };
+                let new_move = OthelloMove::Move(x, y);
                 if !self.tiles_would_flip(new_move).is_empty() {
                     moves.push(new_move)
                 }
             }
         }
 
+        if moves.is_empty() {
+            if !self.last_was_pass {
+                moves.push(OthelloMove::Pass);
+            }
+        }
         moves
     }
 
     fn make_move(&mut self, m: Self::Move) {
-        for tile in self.tiles_would_flip(m) {
-            //TODO: Make sure the indices arent flipped
-            self.board[tile.y][tile.x] = self.playing.to_color();
-        }
+        //println!("{:?}", m);
+        match m {
+            OthelloMove::Pass => {
+                self.last_was_pass = true;
+            }
+            OthelloMove::Move(x, y) => {
+                self.last_was_pass = false;
+                for tile in self.tiles_would_flip(m) {
+                //TODO: Make sure the indices arent flipped
+                    match tile {
+                        OthelloMove::Pass => {},
+                        OthelloMove::Move(x, y) => {self.board[y][x] = self.playing.to_color();}
+                    }
+                    
+                }
 
-        self.board[m.y][m.x] = self.playing.to_color();
+                self.board[y][x] = self.playing.to_color();
+            }
+        }
 
         self.playing = match self.playing {
             PlayerColor::Black => PlayerColor::White,
@@ -178,14 +200,12 @@ impl Game for Othello {
     }
 
     fn play_full_game<'a>(strategies: Vec<&Strategy<Othello>>, verbose: bool) -> GameResult {
-        let mut full_tiles = 4;
-
         assert!(strategies.len() == Self::NUM_PLAYERS);
         let black = &strategies[0].player;
         let white = &strategies[1].player;
 
         let mut game = Self::new();
-        while full_tiles < 64 {
+        while !game.is_over() {
             let next_move = if game.playing == PlayerColor::Black {
                 black.choose_move(&game)
             } else {
@@ -194,23 +214,14 @@ impl Game for Othello {
             match next_move {
                 Ok(m) => {
                     game.make_move(m);
-                    full_tiles += 1;
+                    if !matches!(m, OthelloMove::Pass) {}
                     if verbose {
                         game.print()
                     }
                 }
                 // No legal moves skips the turn
-                Err(PlayerError::NoLegalMoves) => {
-                    game.playing = match game.playing {
-                        PlayerColor::Black => PlayerColor::White,
-                        PlayerColor::White => PlayerColor::Black,
-                    };
-
-                    // Sometimes, neither player can play
-                    // In this case, end the game immediately
-                    if game.legal_moves().is_empty() {
-                        break;
-                    }
+                Err(err) => {
+                    panic!("Err: {:?}", err);
                 }
             }
 
@@ -245,16 +256,10 @@ impl Game for Othello {
         if !self.legal_moves().is_empty() {
             return false;
         }
-        let mut opp_color = self.clone();
-        match self.playing {
-            PlayerColor::White => opp_color.playing = PlayerColor::Black,
-            PlayerColor::Black => opp_color.playing = PlayerColor::Black,
+        if !self.last_was_pass {
+            return false;
         }
-        if opp_color.legal_moves().is_empty() {
-            true
-        } else {
-            false
-        }
+        true
     }
 
     const BOARD_SIZE: usize = 8;
