@@ -2,8 +2,10 @@
 members = [
     "games",
     "alphazero",
+    "alphazero_train",
     "shared",
     "players",
     "main"
 ]
+default-members = ["main"]
 resolver = "2"

@@ -7,3 +7,4 @@ mod train;
 
 pub use mcts::MCTS;
 pub use nn::BoardGameModel;
+pub use train::{update_on_many, TrainingExample};

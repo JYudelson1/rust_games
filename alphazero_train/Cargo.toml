@@ -1,0 +1,12 @@
+[package]
+name = "alphazero_train"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dfdx = {version = "0.13.0", features = ["safetensors"]}
+alphazero = {path = "../alphazero"}
+rust_games_shared = {path = "../shared"}
+rust_games_games = {path = "../games"}

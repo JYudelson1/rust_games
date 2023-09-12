@@ -1,7 +1,7 @@
 use dfdx::{optim::Adam, prelude::*};
 use rust_games_shared::Game;
 
-struct TrainingExample<G: Game>
+pub struct TrainingExample<G: Game>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
@@ -81,7 +81,7 @@ fn loss(
     mse_loss + bce_loss
 }
 
-fn update_on_many<
+pub fn update_on_many<
     G: Game,
     Model: ModuleMut<
             <Tensor<
