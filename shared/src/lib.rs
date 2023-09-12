@@ -42,7 +42,6 @@ pub trait Player<G: Game> {
     fn reset(&mut self) {}
 }
 
-//TODO: Playing against each other, ELO, etc
 #[derive(Copy, Clone, Debug)]
 pub struct Elo {
     pub rating: f64,
