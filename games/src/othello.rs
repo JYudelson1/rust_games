@@ -286,7 +286,11 @@ impl Game for Othello {
     fn associate_players(
         players: Vec<&Strategy<Self>>,
     ) -> HashMap<Self::PlayerId, &Strategy<Self>> {
-        todo!()
+        let mut players_map = HashMap::new();
+        players_map.insert(PlayerColor::Black, players[0]);
+        players_map.insert(PlayerColor::White, players[1]);
+
+        players_map
     }
 }
 
