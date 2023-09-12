@@ -6,8 +6,8 @@ type BoardGameBaseModel<G: Game> = (
     Flatten2D,
     Linear<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }, 10>,
 );
-type BoardGamePolicyHead = (Linear<10, 1>); //TODO
-type BoardGameValueHead = (Linear<10, 1>); //TODO
+type BoardGamePolicyHead = Linear<10, 1>; //TODO
+type BoardGameValueHead = Linear<10, 1>; //TODO
 
 pub type BoardGameModel<G: Game> = ((
     BoardGameBaseModel<G>,
