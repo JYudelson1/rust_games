@@ -200,38 +200,7 @@ impl Game for Othello {
         // self
     }
 
-    fn play_full_game<'a>(strategies: Vec<&Strategy<Self>>, verbose: bool) -> GameResult {
-        assert!(strategies.len() == Self::NUM_PLAYERS);
-        let player_map: HashMap<Self::PlayerId, &Strategy<Self>> =
-            Self::associate_players(strategies);
-
-        let mut game = Self::new();
-        while !game.is_over() {
-            let current_player = game.current_player();
-            let next_move = (*player_map.get(&current_player).unwrap()).player.choose_move(&game);
-            match next_move {
-                Ok(m) => {
-                    game.make_move(m);
-                    if verbose {
-                        game.print()
-                    }
-                }
-                // No legal moves skips the turn
-                Err(err) => {
-                    panic!("Err: {:?}", err);
-                }
-            }
-
-            if verbose {
-                game.print();
-            }
-        }
-
-        match game.get_winner() {
-            Some(player_id) => GameResult::Winner(player_map.get(&player_id).unwrap().name.clone()),
-            None => GameResult::Tie,
-        }
-    }
+    //fn play_full_game<'a>(strategies: Vec<&Strategy<Self>>, verbose: bool) -> GameResult 
 
     fn is_over(&self) -> bool {
         if !self.legal_moves().is_empty() {
