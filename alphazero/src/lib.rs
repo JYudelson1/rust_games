@@ -1,4 +1,5 @@
 #![allow(incomplete_features)]
+#![allow(type_alias_bounds)]
 #![feature(generic_const_exprs)]
 
 mod mcts;
