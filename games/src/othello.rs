@@ -42,6 +42,15 @@ pub enum OthelloMove {
     Move(usize, usize),
 }
 
+impl fmt::Display for OthelloMove {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OthelloMove::Pass => write!(f, "Pass"),
+            OthelloMove::Move(x, y) => write!(f, "{} {}", x + 1, 8 - y),
+        }
+    }
+}
+
 impl OthelloMove {
     pub fn is_corner(&self) -> bool {
         match self {
@@ -143,12 +152,14 @@ impl Game for Othello {
     }
 
     fn print(&self) {
-        for row in self.board {
+        for (i, row) in self.board.iter().enumerate() {
+            print!("{}", 8 - i);
             for icon in row {
                 print!("{}", icon);
             }
             println!()
         }
+        println!("  1 2 3 4 5 6 7 8");
         println!("Currently playing: {}", self.playing.to_color())
     }
 

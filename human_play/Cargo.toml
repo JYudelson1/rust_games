@@ -1,0 +1,12 @@
+[package]
+name = "human_play"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rust_games_players = { path = "../players" }
+rust_games_games = { path = "../games" }
+rust_games_main = { path = "../main" }
+rust_games_shared = { path = "../shared" }

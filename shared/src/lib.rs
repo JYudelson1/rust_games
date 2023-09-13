@@ -1,7 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hash, rc::Rc};
+use std::{any::Any, collections::HashMap, fmt::{Debug, Display}, hash::Hash, rc::Rc};
 
 use dfdx::tensor::Tensor3D;
 
@@ -13,7 +13,7 @@ pub enum GameResult {
 }
 
 pub trait Game: Clone + Debug {
-    type Move: Copy + Debug;
+    type Move: Copy + Debug + Display;
     type Board: Eq;
     type PlayerId: Copy + Hash + Eq;
 
@@ -42,6 +42,10 @@ pub trait Game: Clone + Debug {
 
         let mut game = Self::new();
         while !game.is_over() {
+            if verbose {
+                game.print();
+            }
+
             let current_player = game.current_player();
             let next_move = (*player_map.get(&current_player).unwrap())
                 .player
@@ -49,9 +53,6 @@ pub trait Game: Clone + Debug {
             match next_move {
                 Ok(m) => {
                     game.make_move(m);
-                    if verbose {
-                        game.print()
-                    }
                 }
                 // No legal moves skips the turn
                 Err(err) => {
@@ -59,9 +60,9 @@ pub trait Game: Clone + Debug {
                 }
             }
 
-            if verbose {
-                game.print();
-            }
+        }
+        if verbose {
+            game.print();
         }
 
         match game.get_winner() {

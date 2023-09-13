@@ -11,3 +11,4 @@ dfdx = "0.13.0"
 alphazero = {path = "../alphazero"}
 rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}
+dialoguer = "0.10.2"
