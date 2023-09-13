@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use rust_games_shared::{Game, GameResult, Strategy};
+use rust_games_shared::{Game, Strategy};
 use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

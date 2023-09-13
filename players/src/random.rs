@@ -13,7 +13,7 @@ impl<G: Game> Random<G> {
     }
 }
 
-impl<G: Game> Player<G> for Random<G> {
+impl<G: Game + 'static> Player<G> for Random<G> {
     fn choose_move(&self, game: &G) -> Result<<G as Game>::Move, PlayerError> {
         let moves = game.legal_moves();
 
@@ -25,5 +25,9 @@ impl<G: Game> Player<G> for Random<G> {
 
         let m = moves.choose(&mut rng);
         Ok(*m.unwrap())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

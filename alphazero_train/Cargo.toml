@@ -10,3 +10,6 @@ dfdx = {version = "0.13.0", features = ["safetensors"]}
 alphazero = {path = "../alphazero"}
 rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}
+rust_games_players = {path = "../players"}
+rust_games_main = {path = "../main"}
+lazy-pbar = "0.2.0"

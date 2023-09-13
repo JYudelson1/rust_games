@@ -29,9 +29,9 @@ impl<
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
-    pub fn new(model: M, temperature: f32) -> Self {
+    pub fn new(model: M, temperature: f32, training: bool) -> Self {
         Self {
-            mcts: MCTS::new(G::new(), model, temperature).into(),
+            mcts: MCTS::new(G::new(), model, temperature, training).into(),
         }
     }
 
@@ -39,20 +39,23 @@ where
         model_name: &str,
         temperature: f32,
         dev: &Cpu,
-    ) -> Self {
+        training: bool
+    ) -> Self 
+    where [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized
+    {
         Self {
-            mcts: MCTS::new_from_file::<B>(G::new(), temperature, model_name, dev).into(),
+            mcts: MCTS::new_from_file::<B>(G::new(), temperature, model_name, dev, training).into(),
         }
     }
 }
 
 impl<
-        G: Game,
+        G: Game + 'static,
         M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
                 Error = CpuError,
-            >,
+            > + 'static,
     > Player<G> for AlphaZero<G, M>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
@@ -63,6 +66,10 @@ where
 
     fn reset(&mut self) {
         self.mcts.get_mut().reset_board();
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 
@@ -78,13 +85,13 @@ mod tests {
     fn first_move() {
         let dev: Cpu = Default::default();
         let nn = dev.build_module::<BoardGameModel<Othello>, f32>();
-        let player = AlphaZero::new(nn.clone(), 1.0);
+        let player = AlphaZero::new(nn.clone(), 1.0, false);
         let mut g = Othello::new();
         let m = player.choose_move(&g);
         g.make_move(m.unwrap());
         g.print();
 
-        player.mcts.into_inner().save_nn("test.safetensors");
+        player.mcts.into_inner().save_nn("test");
     }
 
     #[test]
@@ -94,8 +101,9 @@ mod tests {
         MCTS::new_from_file::<BoardGameModel<Othello>>(
             g,
             1.0,
-            "test.safetensors",
+            "test",
             &dev,
+            false
         );
     }
 
@@ -103,15 +111,9 @@ mod tests {
     fn load_player_test() {
         let mut g = Othello::new();
         let dev: Cpu = Default::default();
-        // let player: AlphaZero<Othello, BoardGameModel<Othello>> =
-        //     AlphaZero::new_from_file("test.safetensors", 1.0, &dev);
-        let mcts = MCTS::new_from_file::<BoardGameModel<Othello>>(
-            g.clone(),
-            1.0,
-            "test.safetensors",
-            &dev,
-        );
-        let player = AlphaZero { mcts: mcts.into() };
+        let player: AlphaZero<Othello, _> =
+            AlphaZero::new_from_file::<BoardGameModel<Othello>>("test", 1.0, &dev, false);
+
         let m = player.choose_move(&g);
         g.make_move(m.unwrap());
         g.print();

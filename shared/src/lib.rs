@@ -1,7 +1,9 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use std::{fmt::Debug, rc::Rc, collections::HashMap, hash::Hash};
+use std::{any::Any, collections::HashMap, fmt::Debug, hash::Hash, rc::Rc};
+
+use dfdx::tensor::Tensor3D;
 
 #[derive(Debug)]
 pub enum GameResult {
@@ -23,7 +25,7 @@ pub trait Game: Clone + Debug {
     fn print(&self);
     fn to_nn_input(
         &self,
-    ) -> dfdx::tensor::Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }>;
+    ) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }>;
     fn get_board(&self) -> Self::Board;
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
@@ -77,6 +79,7 @@ pub enum PlayerError {
 pub trait Player<G: Game> {
     fn choose_move(&self, game: &G) -> Result<G::Move, PlayerError>;
     fn reset(&mut self) {}
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Copy, Clone, Debug)]

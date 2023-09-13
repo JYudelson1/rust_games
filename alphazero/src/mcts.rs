@@ -2,11 +2,9 @@ use std::cell::Cell;
 
 use dfdx::prelude::*;
 
-use lazy_pbar::pbar;
-
 use rust_games_shared::{Game, PlayerError};
 
-use crate::TrainingExample;
+use crate::{UnfinishedTrainingExample, nn::load_from_file};
 
 #[derive(Clone, Debug)]
 struct ActionNode<G: Game> {
@@ -51,8 +49,8 @@ where
         model: &impl Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (
-                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
-                    Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                    Tensor<(Const<1>,), f32, Cpu>,
+                    Tensor<(Const<1>,), f32, Cpu>,
                 ),
                 Error = CpuError,
             >,
@@ -81,21 +79,21 @@ where
         }
     }
 
-    pub fn to_example(&self, winner: f32) -> TrainingExample<G> {
+    pub fn to_unfinished_example(&self) -> UnfinishedTrainingExample<G> {
         let position = self.post_state.to_nn_input();
         let next_move_probs = self.children
             .iter()
             .map(|node| (node.post_state.to_nn_input(), node.n))
             .collect();
-        TrainingExample::new(position, winner, next_move_probs)
+        UnfinishedTrainingExample::new(position, next_move_probs)
     }
 }
 
 pub struct MCTS<G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
-                Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
-                Tensor<(Const<1>,), f32, dfdx::tensor::Cpu>,
+                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<1>,), f32, Cpu>,
             ),
             Error = dfdx::prelude::CpuError,
         >>
@@ -105,6 +103,7 @@ where
     root: Cell<ActionNode<G>>,
     pub model: M,
     pub temperature: f32,
+    pub train_examples: Option<Vec<UnfinishedTrainingExample<G>>>
 }
 
 impl<'a, G: Game, M: Module<
@@ -122,7 +121,7 @@ where
         // n times:
         // traverse from the root until a leaf node is reached
         // expand it, backup the v-values to update q's and n's
-        for _ in pbar(0..n) {
+        for _ in 0..n {
             let mut path: Vec<usize> = vec![];
             let child_v;
 
@@ -187,6 +186,10 @@ where
         }
         self.traverse(100);
         let r = self.root.get_mut();
+        if let Some(examples) = &mut self.train_examples {
+            let ex = r.to_unfinished_example();
+            examples.push(ex);
+        }
         let best_child = r.best_child(self.temperature);
 
         match best_child {
@@ -204,8 +207,10 @@ where
         root: G,
         model: M,
         temperature: f32,
+        training: bool
     ) -> Self {
         let (_, v) = model.forward(root.to_nn_input());
+        let train_examples = if training {Some(vec![])} else {None};
         Self {
             root: Cell::new(ActionNode {
                 action: None,
@@ -217,19 +222,17 @@ where
             }),
             model: model,
             temperature: temperature,
+            train_examples
         }
     }
 
-    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu) -> Self
-    where M: TensorCollection<f32, Cpu>
+    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu, training: bool) -> Self
+    where M: TensorCollection<f32, Cpu>,
+        [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized
         {
-            let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
-            file_name.push_str(model_name);
-
-            let mut model = dev.build_module::<B, f32>();
-            <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
+            let model = load_from_file::<G, M, B>(model_name, dev);
         
-            Self::new(root, model, temperature)
+            Self::new(root, model, temperature, training)
     }
 
     pub fn save_nn(&self, model_name: &str) 
@@ -237,8 +240,9 @@ where
     {
         let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
         file_name.push_str(model_name);
+        file_name.push_str(".safetensors");
 
-        self.model.save_safetensors("test.safetensors").unwrap();
+        self.model.save_safetensors(file_name).unwrap();
     }
 
     pub fn reset_board(&mut self) {

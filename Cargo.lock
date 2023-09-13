@@ -26,7 +26,10 @@ version = "0.1.0"
 dependencies = [
  "alphazero",
  "dfdx",
+ "lazy-pbar",
  "rust_games_games",
+ "rust_games_main",
+ "rust_games_players",
  "rust_games_shared",
 ]
 

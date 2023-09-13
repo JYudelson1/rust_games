@@ -1,6 +1,44 @@
 use dfdx::{optim::Adam, prelude::*};
 use rust_games_shared::Game;
 
+#[derive(Clone)]
+pub struct UnfinishedTrainingExample<G: Game>
+where
+    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+{
+    position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+    next_move_probs: Vec<(
+        Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+        usize,
+    )>,
+}
+
+impl<G: Game> UnfinishedTrainingExample<G>
+where
+    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+{
+    pub fn new(
+        position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+        next_move_probs: Vec<(
+            Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+            usize,
+        )>,
+    ) -> Self {
+        UnfinishedTrainingExample {
+            position,
+            next_move_probs,
+        }
+    }
+
+    pub fn finish(self, winner: f32) -> TrainingExample<G> {
+        TrainingExample {
+            position: self.position,
+            winner,
+            next_move_probs: self.next_move_probs,
+        }
+    }
+}
+
 pub struct TrainingExample<G: Game>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
@@ -54,8 +92,8 @@ fn to_model_probs<
             > as dfdx::tensor::Trace<f32, Cpu>>::Traced,
             Error = <Cpu as HasErr>::Err,
             Output = (
-                Tensor<(usize,), f32, Cpu, OwnedTape<f32, Cpu>>,
-                Tensor<(usize,), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(usize,Const<1>), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(usize,Const<1>), f32, Cpu, OwnedTape<f32, Cpu>>,
             ),
         > + TensorCollection<f32, Cpu>,
 >(
@@ -76,7 +114,7 @@ where
 
     let (move_probs, _) = model.forward_mut(all_boards_tensor.traced(grads));
 
-    move_probs.softmax()
+    move_probs.sum::<_, Axis<1>>().softmax()
 }
 
 fn loss(
@@ -121,8 +159,8 @@ pub fn update_on_many<
             > as dfdx::tensor::Trace<f32, Cpu>>::Traced,
             Error = <Cpu as HasErr>::Err,
             Output = (
-                Tensor<(usize,), f32, Cpu, OwnedTape<f32, Cpu>>,
-                Tensor<(usize,), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(usize,Const<1>), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(usize,Const<1>), f32, Cpu, OwnedTape<f32, Cpu>>,
             ),
         > + TensorCollection<f32, Cpu>,
 >(
@@ -146,12 +184,14 @@ where
             example.to_true_probs(&dev),
         );
         let loss_value = loss.array();
+        if i % 100 == 0 {
+            println!("batch {i} | loss = {loss_value:?}");
+        }
         grads = loss.try_backward()?;
         if i % batch_accum == 0 {
             opt.update(model, &grads).unwrap();
             model.try_zero_grads(&mut grads)?;
         }
-        println!("batch {i} | loss = {loss_value:?}");
     }
     Ok(())
 }

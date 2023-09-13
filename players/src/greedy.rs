@@ -40,6 +40,9 @@ impl Player<Othello> for Greedy {
             Some(mv) => Ok(mv),
             None => Err(PlayerError::NoLegalMoves),
         }
-        
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }

@@ -33,4 +33,8 @@ impl Player<Othello> for Corners {
         };
         Ok(*m.unwrap())
     }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
