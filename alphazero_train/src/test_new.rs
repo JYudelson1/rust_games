@@ -1,5 +1,5 @@
 use alphazero::BoardGameModel;
-use dfdx::tensor::Cpu;
+use dfdx::tensor::AutoDevice;
 use rust_games_main::Leaderboard;
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
@@ -20,7 +20,7 @@ where
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
     [(); G::TOTAL_MOVES]: Sized
 {
-    let dev: Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),

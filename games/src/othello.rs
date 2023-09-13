@@ -231,7 +231,7 @@ impl Game for Othello {
     fn to_nn_input(
         &self,
     ) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }> {
-        let dev: Cpu = Default::default();
+        let dev: AutoDevice = Default::default();
         let mut black_channel = [[0.0; 8]; 8];
         for (x, row) in self.board.iter().enumerate() {
             for (y, tile) in row.iter().enumerate() {

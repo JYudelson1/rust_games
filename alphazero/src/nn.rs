@@ -18,24 +18,24 @@ pub fn load_from_file<
     G: Game,
     M: Module<
         Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-        Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
-        Error = CpuError,
+        Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>, Tensor<(Const<1>,), f32, AutoDevice>),
+        Error = <AutoDevice as HasErr>::Err,
     >,
-    B: BuildOnDevice<Cpu, f32, Built = M>,
+    B: BuildOnDevice<AutoDevice, f32, Built = M>,
 >(
     model_name: &str,
-    dev: &Cpu,
+    dev: &AutoDevice,
 ) -> M
 where
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
-    M: TensorCollection<f32, Cpu>,
+    M: TensorCollection<f32, AutoDevice>,
 {
     let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
     file_name.push_str(model_name);
     file_name.push_str(".safetensors");
 
     let mut model = dev.build_module::<B, f32>();
-    <M as LoadFromSafetensors<f32, Cpu>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
+    <M as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
     model
 }
 
@@ -49,7 +49,7 @@ where
     let file_name_control =
         "/Applications/Python 3.4/MyScripts/rust_games/data/control.safetensors";
 
-    let dev: Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
 
     let model = dev.build_module::<BoardGameModel<G>, f32>();
 

@@ -57,7 +57,7 @@ impl<G: Game> TrainingExample<G>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
 {
-    fn to_true_probs(&self, dev: &Cpu) -> Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu, NoneTape> {
+    fn to_true_probs(&self, dev: &AutoDevice) -> Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, NoneTape> {
 
         let mut board_to_count: HashMap<G::Move, usize> = HashMap::new();
 
@@ -91,11 +91,11 @@ where
 }
 
 fn loss<G: Game>(
-    model_v: Tensor<(Const<1>,), f32, Cpu, OwnedTape<f32, Cpu>>,
-    model_probs: Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu, OwnedTape<f32, Cpu>>,
-    winner: Tensor<(Const<1>,), f32, Cpu, NoneTape>,
-    true_probs: Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu, NoneTape>,
-) -> Tensor<Rank0, f32, Cpu, OwnedTape<f32, Cpu>> {
+    model_v: Tensor<(Const<1>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+    model_probs: Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+    winner: Tensor<(Const<1>,), f32, AutoDevice, NoneTape>,
+    true_probs: Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice, NoneTape>,
+) -> Tensor<Rank0, f32, AutoDevice, OwnedTape<f32, AutoDevice>> {
     let mse_loss = mse_loss(model_v, winner);
     let bce_loss = binary_cross_entropy_with_logits_loss(model_probs, true_probs);
 
@@ -112,12 +112,12 @@ pub fn update_on_many<
                     Const<{ G::BOARD_SIZE }>,
                 ),
                 f32,
-                Cpu,
-            > as dfdx::tensor::Trace<f32, Cpu>>::Traced,
-            Error = <Cpu as HasErr>::Err,
+                AutoDevice,
+            > as dfdx::tensor::Trace<f32, AutoDevice>>::Traced,
+            Error = <AutoDevice as HasErr>::Err,
             Output = (
-                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu, OwnedTape<f32, Cpu>>,
-                Tensor<(Const<1>,), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+                Tensor<(Const<1>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
             ),
         > + ModuleMut<
             <Tensor<
@@ -128,21 +128,21 @@ pub fn update_on_many<
                     Const<{ G::BOARD_SIZE }>,
                 ),
                 f32,
-                Cpu,
-            > as dfdx::tensor::Trace<f32, Cpu>>::Traced,
-            Error = <Cpu as HasErr>::Err,
+                AutoDevice,
+            > as dfdx::tensor::Trace<f32, AutoDevice>>::Traced,
+            Error = <AutoDevice as HasErr>::Err,
             Output = (
-                Tensor<(usize,Const<{G::TOTAL_MOVES}>), f32, Cpu, OwnedTape<f32, Cpu>>,
-                Tensor<(usize,Const<1>), f32, Cpu, OwnedTape<f32, Cpu>>,
+                Tensor<(usize,Const<{G::TOTAL_MOVES}>), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+                Tensor<(usize,Const<1>), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
             ),
-        > + TensorCollection<f32, Cpu>,
+        > + TensorCollection<f32, AutoDevice>,
 >(
     model: &mut Model,
     mut examples: Vec<TrainingExample<G>>,
-    opt: &mut Adam<Model, f32, Cpu>,
+    opt: &mut Adam<Model, f32, AutoDevice>,
     batch_accum: usize,
-    dev: Cpu,
-) -> Result<(), <Cpu as dfdx::tensor::HasErr>::Err>
+    dev: AutoDevice,
+) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
     Tensor1D<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }>: Sized,
@@ -150,7 +150,7 @@ where
     let mut grads = model.try_alloc_grads()?;
     for (i, example) in examples.iter_mut().enumerate() {
         let (p, v) = model.try_forward_mut(example.position.clone().traced(grads.clone()))?;
-        let loss: Tensor<(), f32, Cpu, OwnedTape<f32, Cpu>> = loss(
+        let loss: Tensor<(), f32, AutoDevice, OwnedTape<f32, AutoDevice>> = loss(
             v,
             p,
             dev.tensor([example.winner]),

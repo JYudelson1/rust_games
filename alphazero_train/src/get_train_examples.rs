@@ -1,5 +1,5 @@
 use alphazero::{BoardGameModel, TrainingExample};
-use dfdx::prelude::{BuildOnDevice, Cpu, Tensor3D};
+use dfdx::prelude::{BuildOnDevice, AutoDevice, Tensor3D};
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
 
@@ -15,7 +15,7 @@ where
 
     //let x: ;
 
-    let dev: Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
 
     let az1: AlphaZero<G, _> =
         AlphaZero::new_from_file::<BoardGameModel<G>>(model_name, 1.0, &dev, true);
@@ -47,7 +47,7 @@ where
     let examples1 = &player1
         .player
         .as_any()
-        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<Cpu, f32>>::Built>>()
+        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built>>()
         .unwrap()
         .mcts
         .borrow_mut()
@@ -56,7 +56,7 @@ where
     let examples2 = &player2
         .player
         .as_any()
-        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<Cpu, f32>>::Built>>()
+        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built>>()
         .unwrap()
         .mcts
         .borrow_mut()

@@ -3,7 +3,7 @@ use alphazero::{load_from_file, update_on_many, BoardGameModel};
 use dfdx::{
     optim::Adam,
     prelude::{BuildOnDevice, SaveToSafetensors},
-    tensor::Cpu,
+    tensor::AutoDevice,
 };
 use rust_games_shared::Game;
 
@@ -17,11 +17,11 @@ pub fn self_play_iteration<G: Game + 'static>(
 {
     let examples = get_examples_until::<G>(in_model_name, num_examples);
 
-    let dev: Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
 
     let mut model = load_from_file::<
         G,
-        <BoardGameModel<G> as BuildOnDevice<Cpu, f32>>::Built,
+        <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built,
         BoardGameModel<G>,
     >(in_model_name, &dev);
     let mut opt = Adam::new(&model, Default::default());

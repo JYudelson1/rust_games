@@ -2,7 +2,7 @@
 #![feature(generic_const_exprs)]
 
 use alphazero::BoardGameModel;
-use dfdx::prelude::Cpu;
+use dfdx::prelude::AutoDevice;
 use rust_games_games::Othello;
 use rust_games_main::Leaderboard;
 use rust_games_players::{AlphaZero, Corners, Greedy, Random};
@@ -14,7 +14,7 @@ fn main() {
     let rand_player_2: Strategy<Othello> = Strategy::new("Random2".to_string(), Random::new());
     let greedy_player = Strategy::new("Greedy".to_string(), Greedy::new());
 
-    let dev: Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
 
     let dumb_az_player = Strategy::new(
         "Dumb Alphazero".to_string(),
@@ -43,6 +43,6 @@ fn main() {
 
     let mut arena = Leaderboard::new(players);
     arena.print();
-    arena.play_random_games(200);
+    arena.play_random_games(2000);
     arena.print();
 }

@@ -49,10 +49,10 @@ where
         model: &impl Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (
-                    Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
-                    Tensor<(Const<1>,), f32, Cpu>,
+                    Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
+                    Tensor<(Const<1>,), f32, AutoDevice>,
                 ),
-                Error = CpuError,
+                Error = <AutoDevice as HasErr>::Err,
             >,
     ) {
         if !self.children.is_empty(){
@@ -92,10 +92,10 @@ where
 pub struct MCTS<G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
-                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
-                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
+                Tensor<(Const<1>,), f32, AutoDevice>,
             ),
-            Error = dfdx::prelude::CpuError,
+            Error = <AutoDevice as HasErr>::Err,
         >>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
@@ -109,10 +109,10 @@ where
 impl<'a, G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
-                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
-                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
+                Tensor<(Const<1>,), f32, AutoDevice>,
             ),
-            Error = CpuError,
+            Error = <AutoDevice as HasErr>::Err,
         >> MCTS<G, M>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
@@ -226,8 +226,8 @@ where
         }
     }
 
-    pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu, training: bool) -> Self
-    where M: TensorCollection<f32, Cpu>,
+    pub fn new_from_file<B: BuildOnDevice<AutoDevice, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &AutoDevice, training: bool) -> Self
+    where M: TensorCollection<f32, AutoDevice>,
         [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
         [(); G::TOTAL_MOVES]: Sized
         {
@@ -237,7 +237,7 @@ where
     }
 
     pub fn save_nn(&self, model_name: &str) 
-    where M: TensorCollection<f32, Cpu>
+    where M: TensorCollection<f32, AutoDevice>
     {
         let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
         file_name.push_str(model_name);
