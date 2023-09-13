@@ -9,7 +9,7 @@ pub struct AlphaZero<
     G: Game,
     M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-            Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
+            Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
             Error = dfdx::prelude::CpuError,
         >,
 > where
@@ -22,7 +22,7 @@ impl<
         G: Game,
         M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-                Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
+                Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
                 Error = CpuError,
             > + TensorCollection<f32, Cpu>,
     > AlphaZero<G, M>
@@ -53,7 +53,7 @@ impl<
         G: Game + 'static,
         M: Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-                Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
+                Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
                 Error = CpuError,
             > + 'static,
     > Player<G> for AlphaZero<G, M>

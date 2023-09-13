@@ -36,7 +36,7 @@ impl fmt::Display for OthelloState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OthelloMove {
     Pass,
     Move(usize, usize),
@@ -136,6 +136,7 @@ impl Game for Othello {
     type PlayerId = PlayerColor;
 
     const NUM_PLAYERS: usize = 2;
+    const TOTAL_MOVES: usize = 64 /* Board spots */ + 1 /* Passing */;
 
     fn new() -> Othello {
         let mut g = Othello {
@@ -302,6 +303,18 @@ impl Game for Othello {
         players_map.insert(PlayerColor::White, players[1]);
 
         players_map
+    }
+
+    fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES] {
+        let mut moves = [OthelloMove::Pass; Self::TOTAL_MOVES];
+
+        for x in 0..7 {
+            for y in 0..7 {
+                moves[x + 8 * y] = OthelloMove::Move(x, y)
+            }
+        }
+
+        moves
     }
 }
 

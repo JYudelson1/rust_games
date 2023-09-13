@@ -13,6 +13,7 @@ pub fn self_play_iteration<G: Game + 'static>(
     num_examples: usize,
 ) where
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+    [(); G::TOTAL_MOVES]: Sized
 {
     let examples = get_examples_until::<G>(in_model_name, num_examples);
 

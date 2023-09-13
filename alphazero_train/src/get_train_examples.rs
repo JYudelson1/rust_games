@@ -7,6 +7,7 @@ fn training_game<G: Game + 'static>(model_name: &str) -> Vec<TrainingExample<G>>
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+    [(); G::TOTAL_MOVES]: Sized
 {
     // For now, only support two player games
     // Fix that later
@@ -89,6 +90,7 @@ pub fn get_examples_until<G: Game + 'static>(
 where
     Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+    [(); G::TOTAL_MOVES]: Sized
 {
     let mut all_examples = vec![];
 

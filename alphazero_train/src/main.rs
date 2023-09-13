@@ -11,7 +11,7 @@ mod test_new;
 
 fn main() {
     type G = Othello;
-    const TRAIN_ITER: usize = 15;
+    const TRAIN_ITER: usize = 2;
     // Full train loop
 
     // First, randomize "best" and "latest"

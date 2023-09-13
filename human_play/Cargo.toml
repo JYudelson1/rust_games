@@ -10,3 +10,5 @@ rust_games_players = { path = "../players" }
 rust_games_games = { path = "../games" }
 rust_games_main = { path = "../main" }
 rust_games_shared = { path = "../shared" }
+alphazero = {path = "../alphazero"}
+dfdx = "0.13.0"

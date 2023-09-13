@@ -18,6 +18,7 @@ pub fn test_new_model<G: Game + 'static>(
 ) -> NewModelResults
 where
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+    [(); G::TOTAL_MOVES]: Sized
 {
     let dev: Cpu = Default::default();
 

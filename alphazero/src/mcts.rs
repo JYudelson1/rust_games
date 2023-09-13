@@ -49,7 +49,7 @@ where
         model: &impl Module<
                 Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
                 Output = (
-                    Tensor<(Const<1>,), f32, Cpu>,
+                    Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
                     Tensor<(Const<1>,), f32, Cpu>,
                 ),
                 Error = CpuError,
@@ -83,7 +83,7 @@ where
         let position = self.post_state.to_nn_input();
         let next_move_probs = self.children
             .iter()
-            .map(|node| (node.post_state.to_nn_input(), node.n))
+            .map(|node| (node.action.expect("Child must have an associated action"), node.n))
             .collect();
         UnfinishedTrainingExample::new(position, next_move_probs)
     }
@@ -92,7 +92,7 @@ where
 pub struct MCTS<G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
-                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
                 Tensor<(Const<1>,), f32, Cpu>,
             ),
             Error = dfdx::prelude::CpuError,
@@ -109,7 +109,7 @@ where
 impl<'a, G: Game, M: Module<
             Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
             Output = (
-                Tensor<(Const<1>,), f32, Cpu>,
+                Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>,
                 Tensor<(Const<1>,), f32, Cpu>,
             ),
             Error = CpuError,
@@ -228,7 +228,8 @@ where
 
     pub fn new_from_file<B: BuildOnDevice<Cpu, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &Cpu, training: bool) -> Self
     where M: TensorCollection<f32, Cpu>,
-        [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized
+        [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+        [(); G::TOTAL_MOVES]: Sized
         {
             let model = load_from_file::<G, M, B>(model_name, dev);
         

@@ -6,19 +6,19 @@ type BoardGameBaseModel<G: Game> = (
     Linear<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }, 100>,
     Linear<100, 10>
 );
-type BoardGamePolicyHead = Linear<10, 1>; //TODO
+type BoardGamePolicyHead<G: Game> = Linear<10, {G::TOTAL_MOVES}>; //TODO
 type BoardGameValueHead = Linear<10, 1>; //TODO
 
 pub type BoardGameModel<G: Game> = ((
     BoardGameBaseModel<G>,
-    SplitInto<(BoardGamePolicyHead, BoardGameValueHead)>,
+    SplitInto<(BoardGamePolicyHead<G>, BoardGameValueHead)>,
 ),);
 
 pub fn load_from_file<
     G: Game,
     M: Module<
         Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-        Output = (Tensor<(Const<1>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
+        Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, Cpu>, Tensor<(Const<1>,), f32, Cpu>),
         Error = CpuError,
     >,
     B: BuildOnDevice<Cpu, f32, Built = M>,
@@ -42,6 +42,7 @@ where
 pub fn re_init_best_and_latest<G: Game>()
 where
     [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
+    [(); G::TOTAL_MOVES]: Sized,
 {
     let file_name_best = "/Applications/Python 3.4/MyScripts/rust_games/data/best.safetensors";
     let file_name_latest = "/Applications/Python 3.4/MyScripts/rust_games/data/latest.safetensors";

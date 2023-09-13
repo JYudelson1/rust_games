@@ -43,6 +43,6 @@ fn main() {
 
     let mut arena = Leaderboard::new(players);
     arena.print();
-    arena.play_random_games(2000);
+    arena.play_random_games(200);
     arena.print();
 }

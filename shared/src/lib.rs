@@ -13,13 +13,14 @@ pub enum GameResult {
 }
 
 pub trait Game: Clone + Debug {
-    type Move: Copy + Debug + Display;
+    type Move: Copy + Debug + Display + Hash + Eq;
     type Board: Eq;
     type PlayerId: Copy + Hash + Eq;
 
     const NUM_PLAYERS: usize;
     const BOARD_SIZE: usize; //TODO: Make this concept more generic?
     const CHANNELS: usize;
+    const TOTAL_MOVES: usize;
 
     fn new() -> Self;
     fn print(&self);
@@ -32,6 +33,8 @@ pub trait Game: Clone + Debug {
     fn is_over(&self) -> bool;
     fn get_winner(&self) -> Option<Self::PlayerId>;
     fn current_player(&self) -> Self::PlayerId;
+
+    fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES];
     fn associate_players(players: Vec<&Strategy<Self>>) -> HashMap<Self::PlayerId, &Strategy<Self>>;
     fn play_full_game<'a>(players: Vec<&Strategy<Self>>, verbose: bool) -> GameResult
     where
