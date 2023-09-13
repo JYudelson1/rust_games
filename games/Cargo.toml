@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 rust_games_shared = {path = "../shared"}
 dfdx = "0.13.0"
+
+[features]
+cuda = ["dfdx/cuda", "rust_games_shared/cuda"]

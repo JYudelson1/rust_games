@@ -9,3 +9,6 @@ edition = "2021"
 lazy-pbar = "0.2.0"
 dfdx = {version = "0.13.0", features = ["safetensors"]}
 rust_games_shared = { path = "../shared"}
+
+[features]
+cuda = ["dfdx/cuda", "rust_games_shared/cuda"]

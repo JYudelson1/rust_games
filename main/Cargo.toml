@@ -13,3 +13,6 @@ alphazero = {path = "../alphazero"}
 rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}
 rust_games_players = {path = "../players"}
+
+[features]
+cuda = ["dfdx/cuda", "rust_games_shared/cuda", "rust_games_games/cuda", "rust_games_players/cuda", "alphazero/cuda"]

@@ -12,3 +12,6 @@ alphazero = {path = "../alphazero"}
 rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}
 dialoguer = "0.10.2"
+
+[features]
+cuda = ["dfdx/cuda", "rust_games_shared/cuda", "rust_games_games/cuda", "alphazero/cuda"]
