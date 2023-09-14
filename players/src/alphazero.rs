@@ -23,21 +23,25 @@ impl<
                 Error = <AutoDevice as HasErr>::Err,
             >,
     > AlphaZero<G, M> {
-    pub fn new(model: M, temperature: f32, training: bool) -> Self {
+    pub fn new(model: M, temperature: f32, training: bool, traversal_iter: usize) -> Self {
         Self {
-            mcts: MCTS::new(G::new(), model, temperature, training).into(),
+            mcts: MCTS::new(G::new(), model, temperature, training, traversal_iter).into(),
         }
     }
 
+    //TODO: There should be a Config struct for this, which implements default
     pub fn new_from_file<B: BuildOnDevice<AutoDevice, f32, Built = M>>(
         model_name: &str,
+        data_dir: &str,
         temperature: f32,
         dev: &AutoDevice,
-        training: bool
+        training: bool,
+        traversal_iter: usize
     ) -> Self 
-    where M: TensorCollection<f32, Cpu>{
+    where M: TensorCollection<f32, AutoDevice>{
+        let file_name = format!("{}/{}.safetensors", data_dir, model_name);
         Self {
-            mcts: MCTS::new_from_file::<B>(G::new(), temperature, model_name, dev, training).into(),
+            mcts: MCTS::new_from_file::<B>(G::new(), temperature, &file_name, dev, training, traversal_iter).into(),
         }
     }
 }
@@ -75,13 +79,13 @@ mod tests {
     fn first_move() {
         let dev: AutoDevice = Default::default();
         let nn = dev.build_module::<BoardGameModel<Othello>, f32>();
-        let player = AlphaZero::new(nn.clone(), 1.0, false);
+        let player = AlphaZero::new(nn.clone(), 1.0, false, 100);
         let mut g = Othello::new();
         let m = player.choose_move(&g);
         g.make_move(m.unwrap());
         g.print();
 
-        player.mcts.into_inner().save_nn("test");
+        player.mcts.into_inner().save_nn("test", "/Applications/Python 3.4/MyScripts/rust_games/data");
     }
 
     #[test]
@@ -93,7 +97,8 @@ mod tests {
             1.0,
             "test",
             &dev,
-            false
+            false,
+            100
         );
     }
 
@@ -102,7 +107,8 @@ mod tests {
         let mut g = Othello::new();
         let dev: AutoDevice = Default::default();
         let player: AlphaZero<Othello, _> =
-            AlphaZero::new_from_file::<BoardGameModel<Othello>>("test", 1.0, &dev, false);
+            AlphaZero::new_from_file::<BoardGameModel<Othello>>("test", "/Applications/Python 3.4/MyScripts/rust_games/data",1.0, &dev, false,
+        100);
 
         let m = player.choose_move(&g);
         g.make_move(m.unwrap());

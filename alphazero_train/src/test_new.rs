@@ -1,4 +1,3 @@
-use alphazero::BoardGameModel;
 use dfdx::prelude::*;
 use rust_games_main::Leaderboard;
 use rust_games_players::AlphaZero;
@@ -13,6 +12,7 @@ pub enum NewModelResults {
 pub fn test_new_model<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     champ_model_name: &str,
     new_model_name: &str,
+    data_dir: &str,
     save_winner_to: Option<&str>,
     num_iterations: usize,
 ) -> NewModelResults
@@ -22,7 +22,7 @@ where
     [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
     [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
     [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
-    <B as BuildOnDevice<Cpu, f32>>::Built: Module<
+    <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
         Tensor<
             (
                 Const<{ G::CHANNELS }>,
@@ -30,7 +30,7 @@ where
                 <G as Game>::BoardSize,
             ),
             f32,
-            Cpu,
+            AutoDevice,
         >,
         Output = (
             Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
@@ -43,12 +43,12 @@ where
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),
-        AlphaZero::new_from_file::<B>(champ_model_name, 1.0, &dev, false),
+        AlphaZero::new_from_file::<B>(champ_model_name, data_dir, 1.0, &dev, false, 100),
     );
 
     let new_az = Strategy::new(
         "New AlphaZero".to_string(),
-        AlphaZero::new_from_file::<B>(new_model_name, 1.0, &dev, false),
+        AlphaZero::new_from_file::<B>(new_model_name, data_dir, 1.0, &dev, false, 100),
     );
 
     let players = vec![old_az, new_az];
@@ -69,10 +69,10 @@ where
             NewModelResults::OldModelWon(_) => champ_model_name,
             NewModelResults::NewModelWon(_) => new_model_name,
         };
-        AlphaZero::new_from_file::<B>(winner_name, 1.0, &dev, false)
+        AlphaZero::new_from_file::<B>(winner_name, data_dir, 1.0, &dev, false, 100)
             .mcts
             .borrow()
-            .save_nn(save_winner_to.unwrap());
+            .save_nn(save_winner_to.unwrap(), data_dir);
     }
 
     result

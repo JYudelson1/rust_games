@@ -13,10 +13,11 @@ fn main() {
     let human_player: Strategy<G> = Strategy::new("Human".to_string(), Human::new());
 
     // let bot = Strategy::new("Bot".to_string(), Corners);
+    let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
     let dev: AutoDevice = Default::default();
     let bot = Strategy::new(
         "AlphaZero Best".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<G>>("best", 1.0, &dev, false),
+        AlphaZero::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
     );
 
     let players = vec![&human_player, &bot];

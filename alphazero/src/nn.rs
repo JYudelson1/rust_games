@@ -14,7 +14,7 @@ type InnerResidual = (
     BatchNorm2D<256>,
 );
 type ResidualLayer = (Residual<InnerResidual>, ReLU);
-type ResidualStack = Repeated<ResidualLayer, 19>;
+type ResidualStack = Repeated<ResidualLayer, 2>;
 type BaseModel<G: Game> = (ConvLayer<G>, ResidualStack);
 
 type PolicyHead<G: Game> = (
@@ -22,7 +22,7 @@ type PolicyHead<G: Game> = (
     BatchNorm2D<2>,
     ReLU,
     Flatten2D,
-    Linear<{ 2 * <G::TotalBoardSize as ConstDim>::SIZE }, { 65 }>, //TODO: FIx here
+    Linear<{ 2 * <G::TotalBoardSize as ConstDim>::SIZE }, { G::TOTAL_MOVES }>, //TODO: FIx here
 );
 
 type ValueHead<G: Game> = (
@@ -42,7 +42,7 @@ pub type BoardGameModel<G: Game> = ((BaseModel<G>, SplitInto<(PolicyHead<G>, Val
 
 // type Test<G: rust_games_shared::Game> = BoardGameModel<G>;
 
-// type Built<G> = <Test<G> as BuildOnDevice<Cpu, f32>>::Built;
+// type Built<G> = <Test<G> as BuildOnDevice<AutoDevice, f32>>::Built;
 
 // type Out<G: rust_games_shared::Game> = <Built<G> as Module<Inp<G>>>::Output;
 
@@ -61,22 +61,18 @@ pub type BoardGameModel<G: Game> = ((BaseModel<G>, SplitInto<(PolicyHead<G>, Val
 // ),);
 
 pub fn load_from_file<G: Game, B: BuildOnDevice<AutoDevice, f32>>(
-    model_name: &str,
+    file_name: &str,
     dev: &AutoDevice,
 ) -> B::Built
 where
     B::Built: TensorCollection<f32, AutoDevice>,
 {
-    let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
-    file_name.push_str(model_name);
-    file_name.push_str(".safetensors");
-
     let mut model = dev.build_module::<B, f32>();
     <B::Built as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
     model
 }
 
-pub fn re_init_best_and_latest<G: Game>()
+pub fn re_init_best_and_latest<G: Game>(data_dir: &str)
 where
     [(); G::TOTAL_MOVES]: Sized,
     [(); G::CHANNELS]: Sized,
@@ -85,10 +81,9 @@ where
     [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
     BoardGameModel<G>: BuildOnDevice<AutoDevice, f32>,
 {
-    let file_name_best = "/Applications/Python 3.4/MyScripts/rust_games/data/best.safetensors";
-    let file_name_latest = "/Applications/Python 3.4/MyScripts/rust_games/data/latest.safetensors";
-    let file_name_control =
-        "/Applications/Python 3.4/MyScripts/rust_games/data/control.safetensors";
+    let file_name_best = format!("{}/best.safetensors", data_dir);
+    let file_name_latest = format!("{}/latest.safetensors", data_dir);
+    let file_name_control = format!("{}/control.safetensors", data_dir);
 
     let dev: AutoDevice = Default::default();
 

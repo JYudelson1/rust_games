@@ -1,13 +1,15 @@
-use alphazero::{BoardGameModel, TrainingExample};
+use alphazero::TrainingExample;
 use dfdx::{
     prelude::{AutoDevice, BuildOnDevice, Const, ConstDim, Module, Tensor},
     tensor::HasErr,
 };
+use indicatif::ProgressStyle;
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
 
 fn training_game<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     model_name: &str,
+    data_dir: &str
 ) -> Vec<TrainingExample<G>>
 where
     [(); G::TOTAL_MOVES]: Sized,
@@ -42,11 +44,11 @@ where
     let dev: AutoDevice = Default::default();
 
     let az1: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, 1.0, &dev, true);
+        AlphaZero::new_from_file::<B>(model_name, data_dir,  1.0, &dev, true, 100);
     let player1 = Strategy::new("Player1".to_string(), az1);
 
     let az2: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, 1.0, &dev, true);
+        AlphaZero::new_from_file::<B>(model_name, data_dir, 1.0, &dev, true, 100);
     let player2 = Strategy::new("Player2".to_string(), az2);
 
     let players = vec![&player1, &player2];
@@ -109,6 +111,7 @@ where
 
 pub fn get_examples_until<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     model_name: &str,
+    data_dir: &str,
     min_examples: usize,
 ) -> Vec<TrainingExample<G>>
 where
@@ -136,13 +139,23 @@ where
 {
     let mut all_examples = vec![];
 
+    let progress_bar = indicatif::ProgressBar::new(min_examples as u64).with_style(
+        ProgressStyle::default_bar()
+            .template("{msg} |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
+            .unwrap(),
+    );
+    progress_bar.inc(0);
+
     loop {
-        all_examples.extend(training_game::<G, B>(model_name));
+        let new_examples = training_game::<G, B>(model_name, data_dir);
+        progress_bar.inc(new_examples.len() as u64);
+        all_examples.extend(new_examples);
         if all_examples.len() >= min_examples {
             break;
         }
     }
 
+    progress_bar.finish();
     all_examples
 }
 
@@ -153,12 +166,12 @@ mod tests {
     use rust_games_games::Othello;
     #[test]
     fn works_at_all() {
-        training_game::<Othello, BoardGameModel<Othello>>("test");
+        training_game::<Othello, BoardGameModel<Othello>>("test", "/Applications/Python 3.4/MyScripts/rust_games/data");
     }
 
     #[test]
     fn get_200_ex() {
-        let ex = get_examples_until::<Othello, BoardGameModel<Othello>>("test", 200);
+        let ex = get_examples_until::<Othello, BoardGameModel<Othello>>("test", "/Applications/Python 3.4/MyScripts/rust_games/data", 200);
         assert!(ex.len() >= 200);
     }
 }

@@ -1,11 +1,12 @@
 use crate::get_train_examples::get_examples_until;
-use alphazero::{load_from_file, update_on_many, BoardGameModel};
+use alphazero::{load_from_file, update_on_many};
 use dfdx::{optim::Adam, prelude::*};
 use rust_games_shared::Game;
 
-pub fn self_play_iteration<G: Game + 'static, B: BuildOnDevice<Cpu, f32> + 'static>(
+pub fn self_play_iteration<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     in_model_name: &str,
     out_model_name: &str,
+    data_dir: &str, 
     num_examples: usize,
 ) where
     [(); G::TOTAL_MOVES]: Sized,
@@ -46,18 +47,18 @@ pub fn self_play_iteration<G: Game + 'static, B: BuildOnDevice<Cpu, f32> + 'stat
         Error = <AutoDevice as HasErr>::Err,
     >,
 {
-    let examples = get_examples_until::<G, B>(in_model_name, num_examples);
+    let examples = get_examples_until::<G, B>(in_model_name, data_dir, num_examples);
 
     let dev: AutoDevice = Default::default();
 
-    let mut model: <B as BuildOnDevice<AutoDevice, f32>>::Built = load_from_file::<G, B>(in_model_name, &dev);
+    let in_file_name = format!("{}/{}.safetensors", data_dir, in_model_name);
+
+    let mut model: <B as BuildOnDevice<AutoDevice, f32>>::Built = load_from_file::<G, B>(&in_file_name, &dev);
     let mut opt = Adam::new(&model, Default::default());
 
-    let _ = update_on_many(&mut model, examples, &mut opt, 1, dev);
+    let examples_ref: Vec<&alphazero::TrainingExample<G>> = examples.iter().map(|ex| ex).collect();
+    let _ = update_on_many(&mut model, examples_ref, &mut opt, 1, dev);
 
-    let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
-    file_name.push_str(out_model_name);
-    file_name.push_str(".safetensors");
-
-    model.save_safetensors(file_name).unwrap();
+    let out_file_name = format!("{}/{}.safetensors", data_dir, in_model_name);
+    model.save_safetensors(out_file_name).unwrap();
 }

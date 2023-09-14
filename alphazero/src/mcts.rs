@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use dfdx::prelude::*;
+use dfdx::{prelude::*, data};
 
 use rust_games_shared::{Game, PlayerError};
 
@@ -100,7 +100,8 @@ pub struct MCTS<G: Game, M: Module<
     root: Cell<ActionNode<G>>,
     pub model: M,
     pub temperature: f32,
-    pub train_examples: Option<Vec<UnfinishedTrainingExample<G>>>
+    pub train_examples: Option<Vec<UnfinishedTrainingExample<G>>>,
+    pub traverse_iter: usize
 }
 
 impl<'a, G: Game, M: Module<
@@ -181,7 +182,7 @@ where
             // Should maybe use the new game as a new root
             // But for now, panic
         }
-        self.traverse(100);
+        self.traverse(self.traverse_iter);
         let r = self.root.get_mut();
         if let Some(examples) = &mut self.train_examples {
             let ex = r.to_unfinished_example();
@@ -204,7 +205,8 @@ where
         root: G,
         model: M,
         temperature: f32,
-        training: bool
+        training: bool,
+        traverse_iter: usize
     ) -> Self {
         let (_, v) = model.forward(root.to_nn_input());
         let train_examples = if training {Some(vec![])} else {None};
@@ -215,29 +217,28 @@ where
                 q: 0.0,
                 n: 0,
                 v: v.array()[0],
-                children: vec![],
+                children: vec![]
             }),
             model: model,
             temperature: temperature,
-            train_examples
+            train_examples,
+            traverse_iter
         }
     }
 
-    pub fn new_from_file<B: BuildOnDevice<AutoDevice, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &AutoDevice, training: bool) -> Self
+    pub fn new_from_file<B: BuildOnDevice<AutoDevice, f32, Built = M>>(root: G, temperature: f32, file_name: &str, dev: &AutoDevice, training: bool, traverse_iter: usize) -> Self
     where M: TensorCollection<f32, AutoDevice>,
         [(); G::TOTAL_MOVES]: Sized
         {
-            let model = load_from_file::<G, B>(model_name, dev);
+            let model = load_from_file::<G, B>(file_name, dev);
         
-            Self::new(root, model, temperature, training)
+            Self::new(root, model, temperature, training, traverse_iter)
     }
 
-    pub fn save_nn(&self, model_name: &str) 
+    pub fn save_nn(&self, model_name: &str, data_dir: &str) 
     where M: TensorCollection<f32, AutoDevice>
     {
-        let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
-        file_name.push_str(model_name);
-        file_name.push_str(".safetensors");
+        let file_name = format!("{}/{}.safetensors", data_dir, model_name);
 
         self.model.save_safetensors(file_name).unwrap();
     }

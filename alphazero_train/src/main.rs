@@ -5,6 +5,7 @@ use alphazero::{re_init_best_and_latest, BoardGameModel};
 use rust_games_games::Othello;
 use test_new::test_new_model;
 
+mod games_list;
 mod get_train_examples;
 mod self_play;
 mod test_new;
@@ -15,14 +16,15 @@ fn main() {
     // Full train loop
 
     // First, randomize "best" and "latest"
-    re_init_best_and_latest::<G>();
+    let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
+    re_init_best_and_latest::<G>(data_dir);
 
     // Then, any number of times
     for i in 0..TRAIN_ITER {
         println!("Iter {} of training.", i);
         println!("Gathering Examples...");
-        self_play::self_play_iteration::<Othello, BoardGameModel<Othello>>("latest", "latest", 2000);
-        let res = test_new_model::<Othello, BoardGameModel<Othello>>("best", "latest", Some("best"), 50);
+        self_play::self_play_iteration::<Othello, BoardGameModel<Othello>>("latest", data_dir, "latest", 100);
+        let res = test_new_model::<Othello, BoardGameModel<Othello>>("best", "latest", data_dir, Some("best"), 5);
         println!("{:?}", res);
     }
 }
