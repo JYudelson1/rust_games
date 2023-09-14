@@ -38,7 +38,7 @@ pub(crate) fn update_from_gamesholder<G: Game + 'static,
         let loss_val = update_on_batch(model, examples, opt, dev).unwrap();
 
         progress_bar.inc(1);
-        progress_bar.set_message(format!("{}", loss_val));
+        progress_bar.set_message(format!("{:.3e}", loss_val));
     }
     progress_bar.finish();
 }
