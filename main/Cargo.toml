@@ -11,7 +11,7 @@ debug = "full"
 [dependencies]
 dfdx = "0.13.0"
 rand = "0.8.5"
-lazy-pbar = "0.2.0"
+indicatif = "0.17.1"
 alphazero = {path = "../alphazero"}
 rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}

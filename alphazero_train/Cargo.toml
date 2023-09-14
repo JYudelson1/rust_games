@@ -12,7 +12,6 @@ rust_games_shared = {path = "../shared"}
 rust_games_games = {path = "../games"}
 rust_games_players = {path = "../players"}
 rust_games_main = {path = "../main"}
-lazy-pbar = "0.2.0"
 indicatif = "0.17.1"
 rand = "0.8.5"
 

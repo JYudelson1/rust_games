@@ -199,7 +199,7 @@ pub fn update_on_batch<
     examples: Vec<&TrainingExample<G>>,
     opt: &mut Adam<Model, f32, AutoDevice>,
     dev: &AutoDevice,
-) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>{
+) -> Result<f32, <AutoDevice as dfdx::tensor::HasErr>::Err>{
     let mut grads = model.try_alloc_grads()?;
 
     let (winners, probs) = true_winners_and_probs(&examples, &dev);
@@ -210,9 +210,11 @@ pub fn update_on_batch<
     let loss: Tensor<(), f32, AutoDevice, OwnedTape<f32, AutoDevice>> =
         loss::<G, (usize, Const<1>), (usize, Const<{ G::TOTAL_MOVES }>)>(v, p, winners, probs);
 
+    let loss_value = loss.array();
+
     grads = loss.try_backward()?;
     opt.update(model, &grads).unwrap();
     model.try_zero_grads(&mut grads)?;
 
-    Ok(())
+    Ok(loss_value)
 }

@@ -6,7 +6,6 @@ use dfdx::{
     tensor::HasErr,
 };
 use indicatif::ProgressStyle;
-use lazy_pbar::pbar;
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Player, Strategy};
 
@@ -57,7 +56,16 @@ where
 
     let mut players_mut = vec![&mut player1, &mut player2];
 
-    for _ in pbar(0..num_games) {
+    let progress_bar = indicatif::ProgressBar::new(num_games as u64).with_style(
+        ProgressStyle::default_bar()
+            .template(
+                "Playing train games... |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]",
+            )
+            .unwrap(),
+    );
+    progress_bar.inc(0);
+
+    for _ in 0..num_games {
         for player in players_mut.iter_mut() {
             Rc::<(dyn Player<G> + 'static)>::get_mut(&mut player.player)
                 .unwrap()
@@ -119,7 +127,11 @@ where
             .collect();
 
         all_finished_examples.extend(finished_examples);
+
+        progress_bar.inc(1);
     }
+
+    progress_bar.finish_and_clear();
 
     all_finished_examples
 }
@@ -156,7 +168,7 @@ where
 
     let progress_bar = indicatif::ProgressBar::new(min_examples as u64).with_style(
         ProgressStyle::default_bar()
-            .template("{msg} |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
+            .template("|{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
             .unwrap(),
     );
     progress_bar.inc(0);

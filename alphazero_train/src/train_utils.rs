@@ -1,7 +1,7 @@
 use crate::games_list::GamesHolder;
 use alphazero::update_on_batch;
 use dfdx::{optim::Adam, prelude::*};
-use lazy_pbar::pbar;
+use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_shared::Game;
 
 pub(crate) fn update_from_gamesholder<G: Game + 'static,
@@ -30,8 +30,15 @@ pub(crate) fn update_from_gamesholder<G: Game + 'static,
     batch_size: usize,
     num_batches: usize)
 {
-    for _ in pbar(0..num_batches) {
+    let progress_bar = ProgressBar::new(num_batches as u64)
+        .with_style(ProgressStyle::default_bar().template("Training... (loss = {msg}) |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]").unwrap());
+    progress_bar.inc(0);
+    for _ in 0..num_batches {
         let examples = games_holder.get_random(batch_size);
-        update_on_batch(model, examples, opt, dev).unwrap();
+        let loss_val = update_on_batch(model, examples, opt, dev).unwrap();
+
+        progress_bar.inc(1);
+        progress_bar.set_message(format!("{}", loss_val));
     }
+    progress_bar.finish();
 }

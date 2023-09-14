@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use lazy_pbar::pbar;
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::{rngs::ThreadRng, seq::IteratorRandom};
 use rust_games_shared::{Elo, Game, GameResult, Player, Strategy};
 pub struct Leaderboard<G: Game> {
@@ -69,9 +69,19 @@ impl<'a, G: Game> Leaderboard<G> {
     }
 
     pub fn play_random_games(&mut self, n: usize) {
-        for _ in pbar(0..n) {
+        let progress_bar = ProgressBar::new(n as u64).with_style(
+            ProgressStyle::default_bar()
+                .template(
+                    "Playing Games... |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]",
+                )
+                .unwrap(),
+        );
+        progress_bar.inc(0);
+        for _ in 0..n {
             self.play_random_game(false);
+            progress_bar.inc(1);
         }
+        progress_bar.finish_and_clear();
     }
 
     pub fn print(&self) {

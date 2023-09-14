@@ -9,7 +9,7 @@ mod train_utils;
 use alphazero::{load_from_file, re_init_best_and_latest, BoardGameModel};
 use dfdx::{optim::Adam, prelude::BuildOnDevice, tensor::AutoDevice};
 use games_list::GamesHolder;
-use lazy_pbar::pbar;
+use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_games::Othello;
 use test_new::test_new_model;
 use train_utils::update_from_gamesholder;
@@ -20,7 +20,7 @@ fn main() {
     const BATCH_SIZE: usize = 20; // AlphaGo: 2048
     const NUM_BATCHES: usize = 100; // AlphaGo: 1000
     const CAPACITY: usize = 10_000; // AlphaGo: 500_000
-    const NUM_SELF_PLAY_GAMES: usize = 5; // AlphaGo: 25_000
+    const NUM_SELF_PLAY_GAMES: usize = 1; // AlphaGo: 25_000
     const NUM_TEST_GAMES: usize = 5; // AlphaGo: ?? Maybe 20?
     // Full train loop
 
@@ -38,7 +38,13 @@ fn main() {
     let mut opt: Adam<<BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built, f32, AutoDevice>  = Adam::new(&model, Default::default());
 
     // Then, any number of times
-    for _ in pbar(0..TRAIN_ITER) {
+    let progress_bar = ProgressBar::new(TRAIN_ITER as u64).with_style(
+        ProgressStyle::default_bar()
+            .template("Train Iters |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
+            .unwrap(),
+    );
+    progress_bar.inc(0);
+    for _ in 0..TRAIN_ITER {
         // The current best player plays NUM_SELF_PLAY_GAMES against itself
         gh.add_n_games::<BoardGameModel<G>>("best", data_dir, NUM_SELF_PLAY_GAMES);
 
@@ -56,5 +62,9 @@ fn main() {
 
         //Print the winner of this iteration
         println!("{:?}", res);
+
+        // Progress bar
+        progress_bar.inc(1);
     }
+    progress_bar.finish();
 }

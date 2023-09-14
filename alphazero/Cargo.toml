@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lazy-pbar = "0.2.0"
 dfdx = {version = "0.13.0", features = ["safetensors"]}
 rust_games_shared = { path = "../shared"}
 
