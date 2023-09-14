@@ -3,7 +3,6 @@
 
 mod games_list;
 mod get_train_examples;
-mod self_play;
 mod test_new;
 mod train_utils;
 

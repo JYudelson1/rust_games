@@ -1,6 +1,6 @@
 use std::cell::Cell;
 
-use dfdx::{prelude::*, data};
+use dfdx::prelude::*;
 
 use rust_games_shared::{Game, PlayerError};
 

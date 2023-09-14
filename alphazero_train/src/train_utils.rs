@@ -1,6 +1,5 @@
 use crate::games_list::GamesHolder;
-use crate::get_train_examples::get_examples_until;
-use alphazero::{load_from_file, update_on_batch, update_on_many};
+use alphazero::update_on_batch;
 use dfdx::{optim::Adam, prelude::*};
 use lazy_pbar::pbar;
 use rust_games_shared::Game;

@@ -2,7 +2,6 @@ use crate::get_train_examples::training_games;
 use alphazero::TrainingExample;
 use dfdx::prelude::*;
 use rand::seq::SliceRandom;
-use rust_games_games::Othello;
 use rust_games_shared::Game;
 
 pub(crate) struct GamesHolder<G: Game>
@@ -68,6 +67,7 @@ where
 #[test]
 fn test_cap() {
     use dfdx::tensor::TensorFrom;
+    use rust_games_games::Othello;
     let dev: dfdx::prelude::Cpu = Default::default();
     let ex = TrainingExample::<Othello>::new(dev.tensor([[[0.0; 8]; 8]; 3]), 0.0, vec![]);
 
