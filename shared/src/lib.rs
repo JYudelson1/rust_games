@@ -3,7 +3,7 @@
 
 use std::{any::Any, collections::HashMap, fmt::{Debug, Display}, hash::Hash, rc::Rc};
 
-use dfdx::tensor::Tensor3D;
+use dfdx::prelude::{Tensor, ConstDim, AutoDevice, Const};
 
 #[derive(Debug)]
 pub enum GameResult {
@@ -17,16 +17,16 @@ pub trait Game: Clone + Debug {
     type Board: Eq;
     type PlayerId: Copy + Hash + Eq;
 
-    const NUM_PLAYERS: usize;
-    const BOARD_SIZE: usize; //TODO: Make this concept more generic?
+    type BoardSize: ConstDim;
+    type TotalBoardSize: ConstDim;
+
     const CHANNELS: usize;
+    const NUM_PLAYERS: usize;
     const TOTAL_MOVES: usize;
 
     fn new() -> Self;
     fn print(&self);
-    fn to_nn_input(
-        &self,
-    ) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }>;
+    fn to_nn_input(&self) -> Tensor<(Const<{Self::CHANNELS}>, Self::BoardSize, Self::BoardSize), f32, AutoDevice>;
     fn get_board(&self) -> Self::Board;
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);

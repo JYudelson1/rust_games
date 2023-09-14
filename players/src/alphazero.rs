@@ -7,27 +7,22 @@ use std::cell::RefCell;
 pub struct AlphaZero<
     G: Game,
     M: Module<
-            Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+            Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
             Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>, Tensor<(Const<1>,), f32, AutoDevice>),
             Error = <AutoDevice as HasErr>::Err,
         >,
-> where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
+> {
     pub mcts: RefCell<MCTS<G, M>>,
 }
 
 impl<
         G: Game,
         M: Module<
-                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+                Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
                 Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>, Tensor<(Const<1>,), f32, AutoDevice>),
                 Error = <AutoDevice as HasErr>::Err,
-            > + TensorCollection<f32, AutoDevice>,
-    > AlphaZero<G, M>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
+            >,
+    > AlphaZero<G, M> {
     pub fn new(model: M, temperature: f32, training: bool) -> Self {
         Self {
             mcts: MCTS::new(G::new(), model, temperature, training).into(),
@@ -40,8 +35,7 @@ where
         dev: &AutoDevice,
         training: bool
     ) -> Self 
-    where [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized
-    {
+    where M: TensorCollection<f32, Cpu>{
         Self {
             mcts: MCTS::new_from_file::<B>(G::new(), temperature, model_name, dev, training).into(),
         }
@@ -51,14 +45,11 @@ where
 impl<
         G: Game + 'static,
         M: Module<
-                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+                Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
                 Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>, Tensor<(Const<1>,), f32, AutoDevice>),
                 Error = <AutoDevice as HasErr>::Err,
             > + 'static,
-    > Player<G> for AlphaZero<G, M>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
+    > Player<G> for AlphaZero<G, M> {
     fn choose_move(&self, game: &G) -> Result<<G as Game>::Move, rust_games_shared::PlayerError> {
         self.mcts.borrow_mut().choose_move(game)
     }

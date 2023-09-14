@@ -18,7 +18,7 @@ struct ActionNode<G: Game> {
 
 impl<G: Game> ActionNode<G>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
     pub fn best_child(&mut self, temperature: f32) -> Option<(&mut ActionNode<G>, usize)> {
         let mut best = None;
@@ -47,7 +47,7 @@ where
     fn spawn_children(
         &mut self,
         model: &impl Module<
-                Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+                Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
                 Output = (
                     Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                     Tensor<(Const<1>,), f32, AutoDevice>,
@@ -90,16 +90,13 @@ where
 }
 
 pub struct MCTS<G: Game, M: Module<
-            Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+            Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
             Output = (
                 Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                 Tensor<(Const<1>,), f32, AutoDevice>,
             ),
             Error = <AutoDevice as HasErr>::Err,
-        >>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-{
+        >> {
     root: Cell<ActionNode<G>>,
     pub model: M,
     pub temperature: f32,
@@ -107,7 +104,7 @@ where
 }
 
 impl<'a, G: Game, M: Module<
-            Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+            Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
             Output = (
                 Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                 Tensor<(Const<1>,), f32, AutoDevice>,
@@ -115,7 +112,7 @@ impl<'a, G: Game, M: Module<
             Error = <AutoDevice as HasErr>::Err,
         >> MCTS<G, M>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
     fn traverse(&mut self, n: usize) {
         // n times:
@@ -228,10 +225,9 @@ where
 
     pub fn new_from_file<B: BuildOnDevice<AutoDevice, f32, Built = M>>(root: G, temperature: f32, model_name: &str, dev: &AutoDevice, training: bool) -> Self
     where M: TensorCollection<f32, AutoDevice>,
-        [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
         [(); G::TOTAL_MOVES]: Sized
         {
-            let model = load_from_file::<G, M, B>(model_name, dev);
+            let model = load_from_file::<G, B>(model_name, dev);
         
             Self::new(root, model, temperature, training)
     }

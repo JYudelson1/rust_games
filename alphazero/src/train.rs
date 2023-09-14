@@ -6,25 +6,19 @@ use rust_games_shared::Game;
 #[derive(Clone)]
 pub struct UnfinishedTrainingExample<G: Game>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
-    position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-    next_move_probs: Vec<(
-        G::Move,
-        usize,
-    )>,
+    position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+    next_move_probs: Vec<(G::Move, usize)>,
 }
 
 impl<G: Game> UnfinishedTrainingExample<G>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
     pub fn new(
-        position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-        next_move_probs: Vec<(
-            G::Move,
-            usize,
-        )>,
+        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+        next_move_probs: Vec<(G::Move, usize)>,
     ) -> Self {
         UnfinishedTrainingExample {
             position,
@@ -43,19 +37,16 @@ where
 
 pub struct TrainingExample<G: Game>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
-    position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
+    position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
     winner: f32,
-    next_move_probs: Vec<(
-        G::Move,
-        usize,
-    )>,
+    next_move_probs: Vec<(G::Move, usize)>,
 }
 
 impl<G: Game> TrainingExample<G>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
 {
     fn to_true_probs(&self, dev: &AutoDevice) -> Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, NoneTape> {
 
@@ -80,12 +71,10 @@ where
     }
 
     pub fn new(
-        position: Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>, 
-        winner: f32, 
-        next_move_probs: Vec<(
-        G::Move,
-        usize,
-    )>) -> Self {
+        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+        winner: f32,
+        next_move_probs: Vec<(G::Move, usize)>,
+    ) -> Self {
         TrainingExample { position, winner, next_move_probs }
     }
 }
@@ -107,9 +96,9 @@ pub fn update_on_many<
     Model: ModuleMut<
             <Tensor<
                 (
-                    Const<{ G::CHANNELS }>,
-                    Const<{ G::BOARD_SIZE }>,
-                    Const<{ G::BOARD_SIZE }>,
+                    Const<{G::CHANNELS}>,
+                    G::BoardSize,
+                    G::BoardSize,
                 ),
                 f32,
                 AutoDevice,
@@ -119,22 +108,6 @@ pub fn update_on_many<
                 Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
                 Tensor<(Const<1>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
             ),
-        > + ModuleMut<
-            <Tensor<
-                (
-                    usize,
-                    Const<{ G::CHANNELS }>,
-                    Const<{ G::BOARD_SIZE }>,
-                    Const<{ G::BOARD_SIZE }>,
-                ),
-                f32,
-                AutoDevice,
-            > as dfdx::tensor::Trace<f32, AutoDevice>>::Traced,
-            Error = <AutoDevice as HasErr>::Err,
-            Output = (
-                Tensor<(usize,Const<{G::TOTAL_MOVES}>), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
-                Tensor<(usize,Const<1>), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
-            ),
         > + TensorCollection<f32, AutoDevice>,
 >(
     model: &mut Model,
@@ -142,11 +115,7 @@ pub fn update_on_many<
     opt: &mut Adam<Model, f32, AutoDevice>,
     batch_accum: usize,
     dev: AutoDevice,
-) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>
-where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-    Tensor1D<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }>: Sized,
-{
+) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>{
     let mut grads = model.try_alloc_grads()?;
     for (i, example) in examples.iter_mut().enumerate() {
         let (p, v) = model.try_forward_mut(example.position.clone().traced(grads.clone()))?;

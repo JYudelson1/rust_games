@@ -1,48 +1,89 @@
 use dfdx::prelude::*;
 use rust_games_shared::Game;
 
-type BoardGameBaseModel<G: Game> = (
-    Flatten2D,
-    Linear<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }, 100>,
-    Linear<100, 10>
+type ConvLayer<G: Game> = (
+    Conv2D<{ G::CHANNELS }, 256, 3, 1, 1>, //TODO: Fix here
+    BatchNorm2D<256>,
+    ReLU,
 );
-type BoardGamePolicyHead<G: Game> = Linear<10, {G::TOTAL_MOVES}>; //TODO
-type BoardGameValueHead = Linear<10, 1>; //TODO
+type InnerResidual = (
+    Conv2D<256, 256, 3, 1, 1>,
+    BatchNorm2D<256>,
+    ReLU,
+    Conv2D<256, 256, 3, 1, 1>,
+    BatchNorm2D<256>,
+);
+type ResidualLayer = (Residual<InnerResidual>, ReLU);
+type ResidualStack = Repeated<ResidualLayer, 19>;
+type BaseModel<G: Game> = (ConvLayer<G>, ResidualStack);
 
-pub type BoardGameModel<G: Game> = ((
-    BoardGameBaseModel<G>,
-    SplitInto<(BoardGamePolicyHead<G>, BoardGameValueHead)>,
-),);
+type PolicyHead<G: Game> = (
+    Conv2D<256, 2, 1>,
+    BatchNorm2D<2>,
+    ReLU,
+    Flatten2D,
+    Linear<{ 2 * <G::TotalBoardSize as ConstDim>::SIZE }, { 65 }>, //TODO: FIx here
+);
 
-pub fn load_from_file<
-    G: Game,
-    M: Module<
-        Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>,
-        Output = (Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>, Tensor<(Const<1>,), f32, AutoDevice>),
-        Error = <AutoDevice as HasErr>::Err,
-    >,
-    B: BuildOnDevice<AutoDevice, f32, Built = M>,
->(
+type ValueHead<G: Game> = (
+    (
+        Conv2D<256, 1, 1>,
+        BatchNorm2D<1>,
+        ReLU,
+        Flatten2D,
+        Linear<{ <G::TotalBoardSize as ConstDim>::SIZE }, 256>, //TODO: Fix here
+    ),
+    (ReLU, Linear<256, 1>, Tanh),
+);
+pub type BoardGameModel<G: Game> = ((BaseModel<G>, SplitInto<(PolicyHead<G>, ValueHead<G>)>),);
+
+// type Inp<G: rust_games_shared::Game> =
+//     Tensor<(G::Channels, G::BoardSize, G::BoardSize), f32, AutoDevice>;
+
+// type Test<G: rust_games_shared::Game> = BoardGameModel<G>;
+
+// type Built<G> = <Test<G> as BuildOnDevice<Cpu, f32>>::Built;
+
+// type Out<G: rust_games_shared::Game> = <Built<G> as Module<Inp<G>>>::Output;
+
+//print!("{}", std::any::type_name::<Out<Othello>>());
+
+// type BoardGameBaseModel<G: Game> = (
+//     Flatten2D,
+//     Linear<{ G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE }, 100>,
+//     Linear<100, 10>
+// );
+// type BoardGamePolicyHead<G: Game> = Linear<10, { G::TOTAL_MOVES }>; //TODO
+// type BoardGameValueHead = Linear<10, 1>; //TODO
+// pub type BoardGameModel<G: Game> = ((
+//     BoardGameBaseModel<G>,
+//     SplitInto<(BoardGamePolicyHead<G>, BoardGameValueHead)>,
+// ),);
+
+pub fn load_from_file<G: Game, B: BuildOnDevice<AutoDevice, f32>>(
     model_name: &str,
     dev: &AutoDevice,
-) -> M
+) -> B::Built
 where
-    [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
-    M: TensorCollection<f32, AutoDevice>,
+    B::Built: TensorCollection<f32, AutoDevice>,
 {
     let mut file_name = "/Applications/Python 3.4/MyScripts/rust_games/data/".to_string();
     file_name.push_str(model_name);
     file_name.push_str(".safetensors");
 
     let mut model = dev.build_module::<B, f32>();
-    <M as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
+    <B::Built as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
     model
 }
 
 pub fn re_init_best_and_latest<G: Game>()
 where
-    [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
     [(); G::TOTAL_MOVES]: Sized,
+    [(); G::CHANNELS]: Sized,
+    [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    BoardGameModel<G>: BuildOnDevice<AutoDevice, f32>,
 {
     let file_name_best = "/Applications/Python 3.4/MyScripts/rust_games/data/best.safetensors";
     let file_name_latest = "/Applications/Python 3.4/MyScripts/rust_games/data/latest.safetensors";

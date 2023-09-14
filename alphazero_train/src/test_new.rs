@@ -1,5 +1,5 @@
 use alphazero::BoardGameModel;
-use dfdx::tensor::AutoDevice;
+use dfdx::prelude::*;
 use rust_games_main::Leaderboard;
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
@@ -10,26 +10,45 @@ pub enum NewModelResults {
     NewModelWon(f32),
 }
 
-pub fn test_new_model<G: Game + 'static>(
+pub fn test_new_model<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     champ_model_name: &str,
     new_model_name: &str,
     save_winner_to: Option<&str>,
     num_iterations: usize,
 ) -> NewModelResults
 where
-    [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
-    [(); G::TOTAL_MOVES]: Sized
+    [(); G::TOTAL_MOVES]: Sized,
+    [(); G::CHANNELS]: Sized,
+    [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    <B as BuildOnDevice<Cpu, f32>>::Built: Module<
+        Tensor<
+            (
+                Const<{ G::CHANNELS }>,
+                <G as Game>::BoardSize,
+                <G as Game>::BoardSize,
+            ),
+            f32,
+            Cpu,
+        >,
+        Output = (
+            Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
+            Tensor<(Const<1>,), f32, AutoDevice>,
+        ),
+        Error = <AutoDevice as HasErr>::Err,
+    >,
 {
     let dev: AutoDevice = Default::default();
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<G>>(champ_model_name, 1.0, &dev, false),
+        AlphaZero::new_from_file::<B>(champ_model_name, 1.0, &dev, false),
     );
 
     let new_az = Strategy::new(
         "New AlphaZero".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<G>>(new_model_name, 1.0, &dev, false),
+        AlphaZero::new_from_file::<B>(new_model_name, 1.0, &dev, false),
     );
 
     let players = vec![old_az, new_az];
@@ -50,7 +69,7 @@ where
             NewModelResults::OldModelWon(_) => champ_model_name,
             NewModelResults::NewModelWon(_) => new_model_name,
         };
-        AlphaZero::new_from_file::<BoardGameModel<G>>(winner_name, 1.0, &dev, false)
+        AlphaZero::new_from_file::<B>(winner_name, 1.0, &dev, false)
             .mcts
             .borrow()
             .save_nn(save_winner_to.unwrap());

@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rustlang.org/cargo/reference/manifest.html
 
+[profile.dev]
+debug = "full"
+
 [dependencies]
 dfdx = "0.13.0"
 rand = "0.8.5"

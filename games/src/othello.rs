@@ -224,13 +224,13 @@ impl Game for Othello {
         true
     }
 
-    const BOARD_SIZE: usize = 8;
-
+    type BoardSize = Const<8>;
+    type TotalBoardSize = Const<64>;
     const CHANNELS: usize = 3;
 
     fn to_nn_input(
         &self,
-    ) -> Tensor3D<{ Self::CHANNELS }, { Self::BOARD_SIZE }, { Self::BOARD_SIZE }> {
+    ) -> Tensor<(Const<{Self::CHANNELS}>, Self::BoardSize, Self::BoardSize), f32, AutoDevice>{
         let dev: AutoDevice = Default::default();
         let mut black_channel = [[0.0; 8]; 8];
         for (x, row) in self.board.iter().enumerate() {

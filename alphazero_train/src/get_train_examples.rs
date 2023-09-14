@@ -1,13 +1,37 @@
 use alphazero::{BoardGameModel, TrainingExample};
-use dfdx::prelude::{BuildOnDevice, AutoDevice, Tensor3D};
+use dfdx::{
+    prelude::{AutoDevice, BuildOnDevice, Const, ConstDim, Module, Tensor},
+    tensor::HasErr,
+};
 use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
 
-fn training_game<G: Game + 'static>(model_name: &str) -> Vec<TrainingExample<G>>
+fn training_game<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
+    model_name: &str,
+) -> Vec<TrainingExample<G>>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-    [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
-    [(); G::TOTAL_MOVES]: Sized
+    [(); G::TOTAL_MOVES]: Sized,
+    [(); G::CHANNELS]: Sized,
+    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
+        Tensor<
+            (
+                Const<{ G::CHANNELS }>,
+                <G as Game>::BoardSize,
+                <G as Game>::BoardSize,
+            ),
+            f32,
+            AutoDevice,
+        >,
+        Output = (
+            Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
+            Tensor<(Const<1>,), f32, AutoDevice>,
+        ),
+        Error = <AutoDevice as HasErr>::Err,
+    >,
 {
     // For now, only support two player games
     // Fix that later
@@ -18,11 +42,11 @@ where
     let dev: AutoDevice = Default::default();
 
     let az1: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<BoardGameModel<G>>(model_name, 1.0, &dev, true);
+        AlphaZero::new_from_file::<B>(model_name, 1.0, &dev, true);
     let player1 = Strategy::new("Player1".to_string(), az1);
 
     let az2: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<BoardGameModel<G>>(model_name, 1.0, &dev, true);
+        AlphaZero::new_from_file::<B>(model_name, 1.0, &dev, true);
     let player2 = Strategy::new("Player2".to_string(), az2);
 
     let players = vec![&player1, &player2];
@@ -47,7 +71,7 @@ where
     let examples1 = &player1
         .player
         .as_any()
-        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built>>()
+        .downcast_ref::<AlphaZero<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
         .unwrap()
         .mcts
         .borrow_mut()
@@ -56,7 +80,7 @@ where
     let examples2 = &player2
         .player
         .as_any()
-        .downcast_ref::<AlphaZero<G, <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built>>()
+        .downcast_ref::<AlphaZero<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
         .unwrap()
         .mcts
         .borrow_mut()
@@ -83,19 +107,37 @@ where
     finished_examples
 }
 
-pub fn get_examples_until<G: Game + 'static>(
+pub fn get_examples_until<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     model_name: &str,
     min_examples: usize,
 ) -> Vec<TrainingExample<G>>
 where
-    Tensor3D<{ G::CHANNELS }, { G::BOARD_SIZE }, { G::BOARD_SIZE }>: Sized,
-    [(); G::CHANNELS * G::BOARD_SIZE * G::BOARD_SIZE]: Sized,
-    [(); G::TOTAL_MOVES]: Sized
+    [(); G::TOTAL_MOVES]: Sized,
+    [(); G::CHANNELS]: Sized,
+    [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
+        Tensor<
+            (
+                Const<{ G::CHANNELS }>,
+                <G as Game>::BoardSize,
+                <G as Game>::BoardSize,
+            ),
+            f32,
+            AutoDevice,
+        >,
+        Output = (
+            Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
+            Tensor<(Const<1>,), f32, AutoDevice>,
+        ),
+        Error = <AutoDevice as HasErr>::Err,
+    >,
 {
     let mut all_examples = vec![];
 
     loop {
-        all_examples.extend(training_game(model_name));
+        all_examples.extend(training_game::<G, B>(model_name));
         if all_examples.len() >= min_examples {
             break;
         }
@@ -107,15 +149,16 @@ where
 #[cfg(test)]
 mod tests {
     use super::{get_examples_until, training_game};
+    use alphazero::BoardGameModel;
     use rust_games_games::Othello;
     #[test]
     fn works_at_all() {
-        training_game::<Othello>("test");
+        training_game::<Othello, BoardGameModel<Othello>>("test");
     }
 
     #[test]
     fn get_200_ex() {
-        let ex = get_examples_until::<Othello>("test", 200);
+        let ex = get_examples_until::<Othello, BoardGameModel<Othello>>("test", 200);
         assert!(ex.len() >= 200);
     }
 }
