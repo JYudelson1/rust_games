@@ -136,69 +136,67 @@ where
     all_finished_examples
 }
 
-pub fn get_examples_until<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
-    model_name: &str,
-    data_dir: &str,
-    min_examples: usize,
-) -> Vec<TrainingExample<G>>
-where
-    [(); G::TOTAL_MOVES]: Sized,
-    [(); G::CHANNELS]: Sized,
-    [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
-    [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
-    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
-    <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
-        Tensor<
-            (
-                Const<{ G::CHANNELS }>,
-                <G as Game>::BoardSize,
-                <G as Game>::BoardSize,
-            ),
-            f32,
-            AutoDevice,
-        >,
-        Output = (
-            Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
-            Tensor<(Const<1>,), f32, AutoDevice>,
-        ),
-        Error = <AutoDevice as HasErr>::Err,
-    >,
-{
-    let mut all_examples = vec![];
+// pub fn get_examples_until<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
+//     model_name: &str,
+//     data_dir: &str,
+//     min_examples: usize,
+// ) -> Vec<TrainingExample<G>>
+// where
+//     [(); G::TOTAL_MOVES]: Sized,
+//     [(); G::CHANNELS]: Sized,
+//     [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+//     [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
+//     [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+//     <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
+//         Tensor<
+//             (
+//                 Const<{ G::CHANNELS }>,
+//                 <G as Game>::BoardSize,
+//                 <G as Game>::BoardSize,
+//             ),
+//             f32,
+//             AutoDevice,
+//         >,
+//         Output = (
+//             Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
+//             Tensor<(Const<1>,), f32, AutoDevice>,
+//         ),
+//         Error = <AutoDevice as HasErr>::Err,
+//     >,
+// {
+//     let mut all_examples = vec![];
 
-    let progress_bar = indicatif::ProgressBar::new(min_examples as u64).with_style(
-        ProgressStyle::default_bar()
-            .template("|{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
-            .unwrap(),
-    );
-    progress_bar.inc(0);
+//     let progress_bar = indicatif::ProgressBar::new(min_examples as u64).with_style(
+//         ProgressStyle::default_bar()
+//             .template("|{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
+//             .unwrap(),
+//     );
+//     progress_bar.inc(0);
 
-    loop {
-        let new_examples = training_games::<G, B>(model_name, data_dir, 1);
-        progress_bar.inc(new_examples.len() as u64);
-        all_examples.extend(new_examples);
-        if all_examples.len() >= min_examples {
-            break;
-        }
-    }
+//     loop {
+//         let new_examples = training_games::<G, B>(model_name, data_dir, 1);
+//         progress_bar.inc(new_examples.len() as u64);
+//         all_examples.extend(new_examples);
+//         if all_examples.len() >= min_examples {
+//             break;
+//         }
+//     }
 
-    progress_bar.finish();
-    all_examples
-}
+//     progress_bar.finish();
+//     all_examples
+// }
 
 #[cfg(test)]
 mod tests {
-    use super::{get_examples_until, training_games};
+    use super::training_games;
     use alphazero::BoardGameModel;
     use rust_games_games::Othello;
     #[test]
     fn works_at_all() {
-        training_games::<Othello, BoardGameModel<Othello>>("test", "/Applications/Python 3.4/MyScripts/rust_games/data", 1);
-    }
-
-    #[test]
-    fn get_200_ex() {
-        let ex = get_examples_until::<Othello, BoardGameModel<Othello>>("test", "/Applications/Python 3.4/MyScripts/rust_games/data", 200);
-        assert!(ex.len() >= 200);
+        training_games::<Othello, BoardGameModel<Othello>>(
+            "test",
+            "/Applications/Python 3.4/MyScripts/rust_games/data",
+            1,
+        );
     }
 }
