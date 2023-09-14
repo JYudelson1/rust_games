@@ -10,8 +10,8 @@ pub enum NewModelResults {
 }
 
 pub fn test_new_model<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
-    champ_model_name: &str,
-    new_model_name: &str,
+    new_model: &<B as BuildOnDevice<AutoDevice, f32>>::Built,
+    best_model_name: &str,
     data_dir: &str,
     save_winner_to: Option<&str>,
     num_iterations: usize,
@@ -37,18 +37,18 @@ where
             Tensor<(Const<1>,), f32, AutoDevice>,
         ),
         Error = <AutoDevice as HasErr>::Err,
-    >,
+    > + Clone,
 {
     let dev: AutoDevice = Default::default();
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),
-        AlphaZero::new_from_file::<B>(champ_model_name, data_dir, 1.0, &dev, false, 100),
+        AlphaZero::new_from_file::<B>(best_model_name, data_dir, 1.0, &dev, false, 100),
     );
 
     let new_az = Strategy::new(
         "New AlphaZero".to_string(),
-        AlphaZero::new_from_file::<B>(new_model_name, data_dir, 1.0, &dev, false, 100),
+        AlphaZero::new(new_model.clone(), 1.0, false, 100),
     );
 
     let players = vec![old_az, new_az];
@@ -66,8 +66,8 @@ where
 
     if save_winner_to.is_some() {
         let winner_name = match result {
-            NewModelResults::OldModelWon(_) => champ_model_name,
-            NewModelResults::NewModelWon(_) => new_model_name,
+            NewModelResults::OldModelWon(_) => best_model_name,
+            NewModelResults::NewModelWon(_) => "New Model",
         };
         AlphaZero::new_from_file::<B>(winner_name, data_dir, 1.0, &dev, false, 100)
             .mcts

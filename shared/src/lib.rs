@@ -1,7 +1,14 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use std::{any::Any, collections::HashMap, fmt::{Debug, Display}, hash::Hash, rc::Rc};
+use std::{
+    any::Any,
+    collections::HashMap,
+    fmt::{Debug, Display},
+    hash::Hash,
+    rc::Rc,
+};
+
 
 use dfdx::prelude::{Tensor, ConstDim, AutoDevice, Const};
 

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use dfdx::{optim::Adam, prelude::*};
+use std::{collections::HashMap, vec};
+
 use rust_games_shared::Game;
 
 #[derive(Clone)]
@@ -35,6 +35,7 @@ where
     }
 }
 
+#[derive(Clone)]
 pub struct TrainingExample<G: Game>
 where
     Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
@@ -79,11 +80,11 @@ where
     }
 }
 
-fn loss<G: Game>(
-    model_v: Tensor<(Const<1>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
-    model_probs: Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
-    winner: Tensor<(Const<1>,), f32, AutoDevice, NoneTape>,
-    true_probs: Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice, NoneTape>,
+fn loss<G: Game, VShape: Shape, PShape: Shape>(
+    model_v: Tensor<VShape, f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+    model_probs: Tensor<PShape, f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+    winner: Tensor<VShape, f32, AutoDevice, NoneTape>,
+    true_probs: Tensor<PShape, f32, AutoDevice, NoneTape>,
 ) -> Tensor<Rank0, f32, AutoDevice, OwnedTape<f32, AutoDevice>> {
     let mse_loss = mse_loss(model_v, winner);
     let bce_loss = binary_cross_entropy_with_logits_loss(model_probs, true_probs);
@@ -111,22 +112,22 @@ pub fn update_on_many<
         > + TensorCollection<f32, AutoDevice>,
 >(
     model: &mut Model,
-    mut examples: Vec<TrainingExample<G>>,
+    mut examples: Vec<&TrainingExample<G>>,
     opt: &mut Adam<Model, f32, AutoDevice>,
     batch_accum: usize,
-    dev: AutoDevice,
+    dev: &AutoDevice,
 ) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>{
     let mut grads = model.try_alloc_grads()?;
     for (i, example) in examples.iter_mut().enumerate() {
         let (p, v) = model.try_forward_mut(example.position.clone().traced(grads.clone()))?;
-        let loss: Tensor<(), f32, AutoDevice, OwnedTape<f32, AutoDevice>> = loss(
+        let loss: Tensor<(), f32, AutoDevice, OwnedTape<f32, AutoDevice>> = loss::<G, (Const<1>,), (Const<{G::TOTAL_MOVES}>,)>(
             v,
             p,
             dev.tensor([example.winner]),
-            example.to_true_probs(&dev),
+            example.to_true_probs(dev),
         );
         let loss_value = loss.array();
-        if i % 100 == 0 {
+        if i % 5 == 0 {
             println!("batch {i} | loss = {loss_value:?}");
         }
         grads = loss.try_backward()?;
@@ -135,5 +136,83 @@ pub fn update_on_many<
             model.try_zero_grads(&mut grads)?;
         }
     }
+    Ok(())
+}
+
+fn examples_to_batch<G: Game>(
+    examples: &Vec<&TrainingExample<G>>,
+) -> Tensor<(usize, Const<{ G::CHANNELS }>, G::BoardSize, G::BoardSize), f32, AutoDevice>
+where
+    [(); G::CHANNELS]: Sized,
+{
+    let mut slices = vec![];
+
+    for example in examples.iter() {
+        slices.push(example.position.clone());
+    }
+
+    slices.stack()
+}
+
+fn true_winners_and_probs<G: Game>(
+    examples: &Vec<&TrainingExample<G>>,
+    dev: &AutoDevice,
+) -> (
+    Tensor<(usize, Const<1>), f32, AutoDevice>,
+    Tensor<(usize, Const<{ G::TOTAL_MOVES }>), f32, AutoDevice>,
+)
+where
+    [(); G::CHANNELS]: Sized,
+{
+    let mut winners = vec![];
+    let mut probs = vec![];
+
+    for example in examples.iter() {
+        winners.push(dev.tensor([example.winner]));
+        probs.push(example.to_true_probs(dev));
+    }
+
+    (winners.stack(), probs.stack())
+}
+
+pub fn update_on_batch<
+    G: Game,
+    Model: ModuleMut<
+            <Tensor<
+                (
+                    usize,
+                    Const<{G::CHANNELS}>,
+                    G::BoardSize,
+                    G::BoardSize,
+                ),
+                f32,
+                AutoDevice,
+            > as dfdx::tensor::Trace<f32, AutoDevice>>::Traced,
+            Error = <AutoDevice as HasErr>::Err,
+            Output = (
+                Tensor<(usize, Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+                Tensor<(usize, Const<1>,), f32, AutoDevice, OwnedTape<f32, AutoDevice>>,
+            ),
+        > + TensorCollection<f32, AutoDevice>,
+>(
+    model: &mut Model,
+    examples: Vec<&TrainingExample<G>>,
+    opt: &mut Adam<Model, f32, AutoDevice>,
+    dev: &AutoDevice,
+) -> Result<(), <AutoDevice as dfdx::tensor::HasErr>::Err>{
+    let mut grads = model.try_alloc_grads()?;
+
+    let (winners, probs) = true_winners_and_probs(&examples, &dev);
+
+    let input = examples_to_batch(&examples).traced(grads);
+    let (p, v) = model.try_forward_mut(input)?;
+
+    let loss: Tensor<(), f32, AutoDevice, OwnedTape<f32, AutoDevice>> =
+        loss::<G, (usize, Const<1>), (usize, Const<{ G::TOTAL_MOVES }>)>(v, p, winners, probs);
+
+    grads = loss.try_backward()?;
+    opt.update(model, &grads).unwrap();
+    model.try_zero_grads(&mut grads)?;
+
     Ok(())
 }

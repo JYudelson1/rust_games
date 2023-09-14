@@ -6,7 +6,7 @@ use rust_games_shared::Game;
 pub fn self_play_iteration<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     in_model_name: &str,
     out_model_name: &str,
-    data_dir: &str, 
+    data_dir: &str,
     num_examples: usize,
 ) where
     [(); G::TOTAL_MOVES]: Sized,
@@ -53,12 +53,13 @@ pub fn self_play_iteration<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> 
 
     let in_file_name = format!("{}/{}.safetensors", data_dir, in_model_name);
 
-    let mut model: <B as BuildOnDevice<AutoDevice, f32>>::Built = load_from_file::<G, B>(&in_file_name, &dev);
+    let mut model: <B as BuildOnDevice<AutoDevice, f32>>::Built =
+        load_from_file::<G, B>(&in_file_name, &dev);
     let mut opt = Adam::new(&model, Default::default());
 
     let examples_ref: Vec<&alphazero::TrainingExample<G>> = examples.iter().map(|ex| ex).collect();
-    let _ = update_on_many(&mut model, examples_ref, &mut opt, 1, dev);
+    update_on_many(&mut model, examples_ref, &mut opt, 1, &dev).unwrap();
 
-    let out_file_name = format!("{}/{}.safetensors", data_dir, in_model_name);
+    let out_file_name = format!("{}/{}.safetensors", data_dir, out_model_name);
     model.save_safetensors(out_file_name).unwrap();
 }

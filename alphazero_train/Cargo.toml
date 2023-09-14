@@ -13,6 +13,8 @@ rust_games_games = {path = "../games"}
 rust_games_players = {path = "../players"}
 rust_games_main = {path = "../main"}
 lazy-pbar = "0.2.0"
+indicatif = "0.17.1"
+rand = "0.8.5"
 
 [features]
 cuda = ["dfdx/cuda", "rust_games_shared/cuda", "rust_games_games/cuda", "rust_games_players/cuda", "rust_games_main/cuda", "alphazero/cuda"]
