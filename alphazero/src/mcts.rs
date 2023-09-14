@@ -256,3 +256,8 @@ where
         });
     }
 }
+
+pub struct MCTSConfig {
+    pub traversal_iter: usize,
+    pub temperature: f32,
+}

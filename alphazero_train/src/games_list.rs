@@ -1,5 +1,5 @@
 use crate::get_train_examples::training_games;
-use alphazero::TrainingExample;
+use alphazero::{MCTSConfig, TrainingExample};
 use dfdx::prelude::*;
 use rand::seq::SliceRandom;
 use rust_games_shared::Game;
@@ -37,6 +37,7 @@ where
         model_name: &str,
         data_dir: &str,
         num_games: usize,
+        mcts_cfg: &MCTSConfig
     ) where
         [(); G::TOTAL_MOVES]: Sized,
         [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
@@ -59,7 +60,7 @@ where
             Error = <AutoDevice as HasErr>::Err,
         >,
     {
-        let examples = training_games::<G, B>(model_name, data_dir, num_games);
+        let examples = training_games::<G, B>(model_name, data_dir, num_games, mcts_cfg);
         self.extend(examples);
     }
 }

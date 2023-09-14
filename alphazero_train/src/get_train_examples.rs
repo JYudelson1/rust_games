@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use alphazero::TrainingExample;
+use alphazero::{TrainingExample, MCTSConfig};
 use dfdx::{
     prelude::{AutoDevice, BuildOnDevice, Const, ConstDim, Module, Tensor},
     tensor::HasErr,
@@ -12,7 +12,8 @@ use rust_games_shared::{Game, Player, Strategy};
 pub(crate) fn training_games<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     model_name: &str,
     data_dir: &str,
-    num_games: usize
+    num_games: usize,
+    mcts_cfg: &MCTSConfig
 ) -> Vec<TrainingExample<G>>
 where
     [(); G::TOTAL_MOVES]: Sized,
@@ -47,11 +48,11 @@ where
     let dev: AutoDevice = Default::default();
 
     let az1: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, data_dir, 1.0, &dev, true, 100);
+        AlphaZero::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
     let mut player1 = Strategy::new("Player1".to_string(), az1);
 
     let az2: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, data_dir, 1.0, &dev, true, 100);
+        AlphaZero::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
     let mut player2 = Strategy::new("Player2".to_string(), az2);
 
     let mut players_mut = vec![&mut player1, &mut player2];
@@ -189,7 +190,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::training_games;
-    use alphazero::BoardGameModel;
+    use alphazero::{BoardGameModel, MCTSConfig};
     use rust_games_games::Othello;
     #[test]
     fn works_at_all() {
@@ -197,6 +198,7 @@ mod tests {
             "test",
             "/Applications/Python 3.4/MyScripts/rust_games/data",
             1,
+            &MCTSConfig { temperature: 1.0, traversal_iter: 100}
         );
     }
 }

@@ -68,7 +68,7 @@ where
     B::Built: TensorCollection<f32, AutoDevice>,
 {
     let mut model = dev.build_module::<B, f32>();
-    <B::Built as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors::<&str>(&mut model, &file_name).unwrap();
+    <B::Built as LoadFromSafetensors<f32, AutoDevice>>::load_safetensors(&mut model, &file_name).unwrap();
     model
 }
 

@@ -1,3 +1,4 @@
+use alphazero::MCTSConfig;
 use dfdx::prelude::*;
 use rust_games_main::Leaderboard;
 use rust_games_players::AlphaZero;
@@ -15,6 +16,7 @@ pub fn test_new_model<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'st
     data_dir: &str,
     save_winner_to: Option<&str>,
     num_iterations: usize,
+    mcts_cfg: &MCTSConfig
 ) -> NewModelResults
 where
     [(); G::TOTAL_MOVES]: Sized,
@@ -43,12 +45,18 @@ where
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),
-        AlphaZero::new_from_file::<B>(best_model_name, data_dir, 1.0, &dev, false, 100),
+        AlphaZero::new_from_file::<B>(
+            best_model_name, 
+            data_dir, 
+            mcts_cfg.temperature, 
+            &dev, 
+            false, 
+            mcts_cfg.traversal_iter),
     );
 
     let new_az = Strategy::new(
         "New AlphaZero".to_string(),
-        AlphaZero::new(new_model.clone(), 1.0, false, 100),
+        AlphaZero::new(new_model.clone(), mcts_cfg.temperature, false, mcts_cfg.traversal_iter),
     );
 
     let players = vec![old_az, new_az];
