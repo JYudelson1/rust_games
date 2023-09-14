@@ -7,7 +7,11 @@ mod test_new;
 mod train_utils;
 
 use alphazero::{load_from_file, re_init_best_and_latest, BoardGameModel, MCTSConfig};
-use dfdx::{optim::Adam, prelude::BuildOnDevice, tensor::AutoDevice};
+use dfdx::{
+    optim::Adam,
+    prelude::{BuildOnDevice, SaveToSafetensors},
+    tensor::AutoDevice,
+};
 use games_list::GamesHolder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_games::Othello;
@@ -25,7 +29,7 @@ fn main() {
 
     let training_games_cfg = MCTSConfig {
         traversal_iter: 100, // AlphaGo: 1600
-        temperature: 1.0,    // AlphaGo: 1.0, but lowers over time
+        temperature: 1.0, // AlphaGo: 1.0, but lowers over time
     };
     let test_games_cfg = MCTSConfig {
         traversal_iter: 100, // AlphaGo: 1600
@@ -34,14 +38,15 @@ fn main() {
     // Full train loop
 
     // First, randomize "best" and "latest"
+    let dev: AutoDevice = Default::default();
     let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
-    re_init_best_and_latest::<G>(data_dir);
+    re_init_best_and_latest::<G>(data_dir, &dev);
+    
     let mut gh: GamesHolder<G> = GamesHolder {
         games: vec![],
         capacity: CAPACITY,
     };
 
-    let dev: AutoDevice = Default::default();
     let mut model =
         load_from_file::<G, BoardGameModel<G>>(&format!("{}/latest.safetensors", data_dir), &dev);
     let mut opt: Adam<<BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built, f32, AutoDevice>  = Adam::new(&model, Default::default());
@@ -72,10 +77,17 @@ fn main() {
             &model,
             "best",
             data_dir,
-            Some("best"),
             NUM_TEST_GAMES,
             &test_games_cfg
         );
+
+        // If the new model won, save it to best
+        match res {
+            test_new::NewModelResults::OldModelWon(_) => {},
+            test_new::NewModelResults::NewModelWon(_) => {
+                model.save_safetensors(format!("{}/best.safetensors", data_dir)).unwrap();
+            },
+        }
 
         //Print the winner of this iteration
         println!("{:?}", res);

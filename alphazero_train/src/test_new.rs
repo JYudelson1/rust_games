@@ -14,7 +14,6 @@ pub fn test_new_model<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'st
     new_model: &<B as BuildOnDevice<AutoDevice, f32>>::Built,
     best_model_name: &str,
     data_dir: &str,
-    save_winner_to: Option<&str>,
     num_iterations: usize,
     mcts_cfg: &MCTSConfig
 ) -> NewModelResults
@@ -71,17 +70,6 @@ where
     } else {
         NewModelResults::OldModelWon(new_win_percentage)
     };
-
-    if save_winner_to.is_some() {
-        let winner_name = match result {
-            NewModelResults::OldModelWon(_) => best_model_name,
-            NewModelResults::NewModelWon(_) => "New Model",
-        };
-        AlphaZero::new_from_file::<B>(winner_name, data_dir, 1.0, &dev, false, 100)
-            .mcts
-            .borrow()
-            .save_nn(save_winner_to.unwrap(), data_dir);
-    }
 
     result
 }

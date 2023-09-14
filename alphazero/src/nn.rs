@@ -72,7 +72,7 @@ where
     model
 }
 
-pub fn re_init_best_and_latest<G: Game>(data_dir: &str)
+pub fn re_init_best_and_latest<G: Game>(data_dir: &str, dev: &AutoDevice)
 where
     [(); G::TOTAL_MOVES]: Sized,
     [(); G::CHANNELS]: Sized,
@@ -84,8 +84,6 @@ where
     let file_name_best = format!("{}/best.safetensors", data_dir);
     let file_name_latest = format!("{}/latest.safetensors", data_dir);
     let file_name_control = format!("{}/control.safetensors", data_dir);
-
-    let dev: AutoDevice = Default::default();
 
     let model = dev.build_module::<BoardGameModel<G>, f32>();
 
