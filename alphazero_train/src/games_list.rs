@@ -69,7 +69,7 @@ where
 fn test_cap() {
     use dfdx::tensor::TensorFrom;
     use rust_games_games::Othello;
-    let dev: dfdx::prelude::Cpu = Default::default();
+    let dev: AutoDevice = Default::default();
     let ex = TrainingExample::<Othello>::new(dev.tensor([[[0.0; 8]; 8]; 3]), 0.0, vec![]);
 
     let mut gh = GamesHolder::<Othello> {
