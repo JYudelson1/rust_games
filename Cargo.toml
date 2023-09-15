@@ -10,3 +10,6 @@ members = [
 ]
 default-members = ["main"]
 resolver = "2"
+
+[profile.dev]
+debug = true
