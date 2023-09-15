@@ -17,20 +17,20 @@ fn main() {
     let dev: AutoDevice = Default::default();
 
     let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
-    const az_depth: usize = 50;
+    const AZ_DEPTH: usize = 50;
     let dumb_az_player = Strategy::new(
         "Dumb Alphazero".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<Othello>>("control", data_dir, 1.0, &dev, false, az_depth),
+        AlphaZero::new_from_file::<BoardGameModel<Othello>>("control", data_dir, 1.0, &dev, false, AZ_DEPTH),
     );
 
     let az_player_best = Strategy::new(
         "AlphaZero Best".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<Othello>>("best", data_dir, 1.0, &dev, false, az_depth),
+        AlphaZero::new_from_file::<BoardGameModel<Othello>>("best", data_dir, 1.0, &dev, false, AZ_DEPTH),
     );
 
     let az_player_latest = Strategy::new(
         "AlphaZero latest".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<Othello>>("latest", data_dir, 1.0, &dev, false, az_depth),
+        AlphaZero::new_from_file::<BoardGameModel<Othello>>("latest", data_dir, 1.0, &dev, false, AZ_DEPTH),
     );
 
     let players = vec![
