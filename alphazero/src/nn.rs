@@ -14,7 +14,7 @@ type InnerResidual = (
     BatchNorm2D<256>,
 );
 type ResidualLayer = (Residual<InnerResidual>, ReLU);
-type ResidualStack = Repeated<ResidualLayer, 2>;
+type ResidualStack = Repeated<ResidualLayer, 4>; // AlphaGo: 19
 type BaseModel<G: Game> = (ConvLayer<G>, ResidualStack);
 
 type PolicyHead<G: Game> = (
