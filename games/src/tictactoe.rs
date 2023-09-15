@@ -62,14 +62,14 @@ impl fmt::Display for TTTMove {
 
 #[derive(Debug, Clone)]
 pub struct TicTacToe {
-    board: [[TTTState; 8]; 8],
+    board: [[TTTState; 3]; 3],
     playing: PlayerSymbol,
 }
 
 impl Game for TicTacToe {
     type Move = TTTMove;
 
-    type Board = [[TTTState; 8]; 8];
+    type Board = [[TTTState; 3]; 3];
 
     type PlayerId = PlayerSymbol;
 
@@ -85,20 +85,21 @@ impl Game for TicTacToe {
 
     fn new() -> Self {
         Self {
-            board: [[TTTState::Empty; 8]; 8],
+            board: [[TTTState::Empty; 3]; 3],
             playing: PlayerSymbol::X,
         }
     }
 
     fn print(&self) {
         for (i, row) in self.board.iter().enumerate() {
-            print!("{}", 3 - i);
+            print!("{} ", 3 - i);
             for icon in row {
-                print!("{}", icon);
+                print!(" {}", icon);
             }
             println!()
         }
-        println!("  1 2 3");
+        println!();
+        println!("   1 2 3");
         println!("Currently playing: {}", self.playing.to_state());
     }
 
@@ -155,7 +156,6 @@ impl Game for TicTacToe {
                 }
             }
         }
-
         moves
     }
 
@@ -168,7 +168,8 @@ impl Game for TicTacToe {
     }
 
     fn is_over(&self) -> bool {
-        self.get_winner().is_some()
+        self.get_winner().is_some() ||
+            self.legal_moves().is_empty()
     }
 
     fn get_winner(&self) -> Option<Self::PlayerId> {
