@@ -7,11 +7,7 @@ mod test_new;
 mod train_utils;
 
 use alphazero::{load_from_file, re_init_best_and_latest, BoardGameModel, MCTSConfig};
-use dfdx::{
-    optim::Adam,
-    prelude::{BuildOnDevice, SaveToSafetensors},
-    tensor::AutoDevice,
-};
+use dfdx::{optim::Adam, prelude::*};
 use games_list::GamesHolder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_games::Othello;
@@ -21,14 +17,14 @@ use train_utils::update_from_gamesholder;
 fn main() {
     type G = Othello;
     const TRAIN_ITER: usize = 15;
-    const BATCH_SIZE: usize = 20; // AlphaGo: 2048
-    const NUM_BATCHES: usize = 100; // AlphaGo: 1000
-    const CAPACITY: usize = 10_000; // AlphaGo: 500_000
-    const NUM_SELF_PLAY_GAMES: usize = 1; // AlphaGo: 25_000
-    const NUM_TEST_GAMES: usize = 1; // AlphaGo: ?? Maybe 20?
+    const BATCH_SIZE: usize = 40; // AlphaGo: 2048
+    const NUM_BATCHES: usize = 200; // AlphaGo: 1000
+    const CAPACITY: usize = 4_000; // AlphaGo: 500_000
+    const NUM_SELF_PLAY_GAMES: usize = 10; // AlphaGo: 25_000
+    const NUM_TEST_GAMES: usize = 5; // AlphaGo: ?? Maybe 20?
 
     let training_games_cfg = MCTSConfig {
-        traversal_iter: 100, // AlphaGo: 1600
+        traversal_iter: 200, // AlphaGo: 1600
         temperature: 1.0, // AlphaGo: 1.0, but lowers over time
     };
     let test_games_cfg = MCTSConfig {
@@ -49,7 +45,18 @@ fn main() {
 
     let mut model =
         load_from_file::<G, BoardGameModel<G>>(&format!("{}/latest.safetensors", data_dir), &dev);
-    let mut opt: Adam<<BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built, f32, AutoDevice>  = Adam::new(&model, Default::default());
+    let mut opt: Adam<
+        <BoardGameModel<G> as BuildOnDevice<AutoDevice, f32>>::Built,
+        f32,
+        AutoDevice,
+    > = Adam::new(
+        &model,
+        AdamConfig {
+            lr: 1e-3,                                  //TODO: Try futzing
+            weight_decay: Some(WeightDecay::L2(1e-3)), // AlphaGo param: 1e-4 TODO: Try fucking around
+            ..Default::default()
+        },
+    );
 
     // Then, any number of times
     let progress_bar = ProgressBar::new(TRAIN_ITER as u64).with_style(
