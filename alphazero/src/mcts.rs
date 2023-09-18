@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{cell::Cell, collections::HashMap};
 
 use dfdx::prelude::*;
 
@@ -7,29 +7,41 @@ use rust_games_shared::{Game, PlayerError};
 use crate::{UnfinishedTrainingExample, nn::load_from_file};
 
 #[derive(Clone, Debug)]
-struct ActionNode<G: Game> {
+pub struct ActionNode<G: Game> 
+where [(); G::TOTAL_MOVES]: Sized{
     pub action: Option<G::Move>,
     post_state: G,
-    q: f32,   //q-value
-    n: usize, //number of times this action was taken
-    v: f32,   // initial estimate by the model of the position's value
+    q: f32,     //q-value
+    n: usize,   //number of times this action was taken
+    pub v: f32, // initial estimate by the model of the position's value
+    pub p: [f32; G::TOTAL_MOVES], // prior probability array over all this nodes possible children
     children: Vec<Self>,
 }
 
 impl<G: Game> ActionNode<G>
 where
     Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    [(); G::TOTAL_MOVES]: Sized
 {
-    pub fn best_child(&mut self, temperature: f32) -> Option<(&mut ActionNode<G>, usize)> {
+    pub fn best_child(&mut self, temperature: f32, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
         let mut best = None;
         let mut highest_u: Option<f32> = None;
         let mut best_index: usize = 0;
 
-        let root_sum_visits: usize = self.children.iter().map(|act| act.n).sum();
+        let root_visits: f32 = (self.n as f32).sqrt();
 
         for (i, child) in &mut self.children.iter_mut().enumerate() {
-            let u = child.q
-                + (temperature * child.v * (root_sum_visits as f32) / (1.0 + child.n as f32));
+
+            // If the move being selected is for second, invert the q-value when deciding to go that way.
+            // I.e. first player chooses whats best for first player, same for second
+            let turn_order_factor = match self.post_state.current_player() {
+                rust_games_shared::PlayerId::First => 1.0_f32,
+                rust_games_shared::PlayerId::Second => -1.0_f32,
+            };
+
+            let p_index = index_map.get(&child.action.unwrap()).unwrap();
+            let u = child.q * turn_order_factor
+                + (temperature * (child.p)[*p_index] * root_visits / (1.0 + child.n as f32));
 
             if highest_u == None || u > highest_u.unwrap() {
                 best = Some(child);
@@ -60,11 +72,12 @@ where
         }
 
         let next_actions = self.post_state.legal_moves();
+
         for action in next_actions {
             let mut subgame = self.post_state.clone();
             subgame.make_move(action);
 
-            let (_, v) = model.forward(subgame.to_nn_input());
+            let (p, v) = model.forward(subgame.to_nn_input());
 
             let new_node: ActionNode<G> = ActionNode {
                 action: Some(action),
@@ -72,6 +85,7 @@ where
                 q: 0.0,
                 n: 0,
                 v: v.array()[0],
+                p: p.array(),
                 children: vec![],
             };
 
@@ -97,11 +111,12 @@ pub struct MCTS<G: Game, M: Module<
             ),
             Error = <AutoDevice as HasErr>::Err,
         >> {
-    root: Cell<ActionNode<G>>,
+    pub root: Cell<ActionNode<G>>,
     pub model: M,
     pub temperature: f32,
     pub train_examples: Option<Vec<UnfinishedTrainingExample<G>>>,
-    pub traverse_iter: usize
+    pub traverse_iter: usize,
+    index_map: HashMap<G::Move, usize>
 }
 
 impl<'a, G: Game, M: Module<
@@ -130,7 +145,7 @@ where
 
                 while !current.children.is_empty() {
                     (current, index) = current
-                        .best_child(self.temperature)
+                        .best_child(self.temperature, &self.index_map)
                         .expect("There should be a child of current node!");
                     path.push(index);
                 }
@@ -188,7 +203,7 @@ where
             let ex = r.to_unfinished_example();
             examples.push(ex);
         }
-        let best_child = r.best_child(self.temperature);
+        let best_child = r.best_child(self.temperature, &self.index_map);
 
         match best_child {
             Some((child, _)) => {
@@ -208,8 +223,14 @@ where
         training: bool,
         traverse_iter: usize
     ) -> Self {
-        let (_, v) = model.forward(root.to_nn_input());
+        let (p, v) = model.forward(root.to_nn_input());
         let train_examples = if training {Some(vec![])} else {None};
+        let mut index_map = HashMap::new();
+
+        for (i, action) in G::all_possible_moves().iter().enumerate() {
+            index_map.insert(*action, i);
+        }
+
         Self {
             root: Cell::new(ActionNode {
                 action: None,
@@ -217,12 +238,14 @@ where
                 q: 0.0,
                 n: 0,
                 v: v.array()[0],
-                children: vec![]
+                p: p.array(),
+                children: vec![],
             }),
             model: model,
             temperature: temperature,
             train_examples,
-            traverse_iter
+            traverse_iter,
+            index_map
         }
     }
 
@@ -245,13 +268,14 @@ where
 
     pub fn reset_board(&mut self) {
         let g = G::new();
-        let (_, v) = self.model.forward(g.to_nn_input());
+        let (p, v) = self.model.forward(g.to_nn_input());
         self.root.replace(ActionNode {
             action: None,
             post_state: g,
             q: 0.0,
             n: 0,
             v: v.array()[0],
+            p: p.array(),
             children: vec![],
         });
     }
