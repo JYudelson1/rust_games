@@ -43,17 +43,18 @@ pub trait Game: Clone + Debug {
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
     fn is_over(&self) -> bool;
-    fn get_winner(&self) -> Option<Self::PlayerId>;
-    fn current_player(&self) -> Self::PlayerId;
+    fn get_winner(&self) -> Option<PlayerId>;
+    fn current_player(&self) -> PlayerId;
 
     fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES];
-    fn associate_players(players: Vec<&Strategy<Self>>) -> HashMap<Self::PlayerId, &Strategy<Self>>;
+
+    fn associate_players(players: Vec<&Strategy<Self>>) -> HashMap<PlayerId, &Strategy<Self>>;
     fn play_full_game<'a>(players: Vec<&Strategy<Self>>, verbose: bool) -> GameResult
     where
         Self: Sized,
     {
         assert!(players.len() == Self::NUM_PLAYERS);
-        let player_map: HashMap<Self::PlayerId, &Strategy<Self>> = Self::associate_players(players);
+        let player_map: HashMap<PlayerId, &Strategy<Self>> = Self::associate_players(players);
 
         let mut game = Self::new();
         while !game.is_over() {
