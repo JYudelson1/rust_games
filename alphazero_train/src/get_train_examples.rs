@@ -1,13 +1,13 @@
 use std::rc::Rc;
 
-use alphazero::{TrainingExample, MCTSConfig};
+use alphazero::{MCTSConfig, TrainingExample};
 use dfdx::{
     prelude::{AutoDevice, BuildOnDevice, Const, ConstDim, Module, Tensor},
     tensor::HasErr,
 };
 use indicatif::ProgressStyle;
 use rust_games_players::AlphaZero;
-use rust_games_shared::{Game, Player, Strategy};
+use rust_games_shared::{Game, Player, PlayerId, Strategy};
 
 pub(crate) fn training_games<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
     model_name: &str,
@@ -78,10 +78,10 @@ where
 
         let winner_num: f32;
         match result {
-            rust_games_shared::GameResult::Winner(name) => {
-                winner_num = if name == "Player1" {
+            rust_games_shared::GameResult::Winner((winner_id, _name)) => {
+                winner_num = if winner_id == PlayerId::First {
                     1.0
-                } else if name == "Player2" {
+                } else if winner_id == PlayerId::Second {
                     -1.0
                 } else {
                     panic!("Weird player name issue");

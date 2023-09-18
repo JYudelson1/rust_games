@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use rust_games_shared::{Game, Strategy};
+use rust_games_shared::{Game, PlayerId, Strategy};
 use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -9,18 +9,10 @@ pub enum OthelloState {
     Black,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
-pub enum PlayerColor {
-    White,
-    Black,
-}
-
-impl PlayerColor {
-    fn to_color(&self) -> OthelloState {
-        match self {
-            PlayerColor::White => OthelloState::White,
-            PlayerColor::Black => OthelloState::Black,
-        }
+fn to_color(id: &PlayerId) -> OthelloState {
+    match id {
+        PlayerId::Second => OthelloState::White,
+        PlayerId::First => OthelloState::Black,
     }
 }
 
@@ -71,8 +63,8 @@ impl OthelloMove {
 #[derive(Debug, Clone)]
 pub struct Othello {
     board: [[OthelloState; 8]; 8],
-    playing: PlayerColor,
-    last_was_pass: bool
+    playing: PlayerId,
+    last_was_pass: bool,
 }
 
 impl Othello {
@@ -110,11 +102,11 @@ impl Othello {
                         break;
                     }
                     // If the next tile is of the opposite color, keep going
-                    if tile_state != self.playing.to_color() {
+                    if tile_state != to_color(&self.playing) {
                         continue;
                     }
                     // If of the player's color, terminate and add all the prev tiles to tiles
-                    if tile_state == self.playing.to_color() {
+                    if tile_state == to_color(&self.playing) {
                         for d in 1..i {
                             tiles.push(OthelloMove::Move((x as i8 + (dx * d)) as usize, (y as i8 + (dy * d)) as usize));
                         }
@@ -133,15 +125,13 @@ impl Game for Othello {
 
     type Board = [[OthelloState; 8]; 8];
 
-    type PlayerId = PlayerColor;
-
     const NUM_PLAYERS: usize = 2;
     const TOTAL_MOVES: usize = 64 /* Board spots */ + 1 /* Passing */;
 
     fn new() -> Othello {
         let mut g = Othello {
             board: [[OthelloState::Empty; 8]; 8],
-            playing: PlayerColor::Black,
+            playing: PlayerId::First,
             last_was_pass: false
         };
         g.board[3][3] = OthelloState::Black;
@@ -161,7 +151,7 @@ impl Game for Othello {
             println!()
         }
         println!("  1 2 3 4 5 6 7 8");
-        println!("Currently playing: {}", self.playing.to_color())
+        println!("Currently playing: {}", to_color(&self.playing))
     }
 
     fn legal_moves(&self) -> Vec<Self::Move> {
@@ -195,18 +185,18 @@ impl Game for Othello {
                 for tile in self.tiles_would_flip(m) {
                     match tile {
                         OthelloMove::Pass => {},
-                        OthelloMove::Move(x, y) => {self.board[y][x] = self.playing.to_color();}
+                        OthelloMove::Move(x, y) => {self.board[y][x] = to_color(&self.playing);}
                     }
                     
                 }
 
-                self.board[y][x] = self.playing.to_color();
+                self.board[y][x] = to_color(&self.playing);
             }
         }
 
         self.playing = match self.playing {
-            PlayerColor::Black => PlayerColor::White,
-            PlayerColor::White => PlayerColor::Black,
+            PlayerId::First => PlayerId::Second,
+            PlayerId::Second => PlayerId::First,
         };
 
         // self
@@ -255,8 +245,8 @@ impl Game for Othello {
         }
 
         let player_num = match self.playing {
-            PlayerColor::White => 1.0_f32,
-            PlayerColor::Black => 0.0,
+            PlayerId::First => 1.0_f32,
+            PlayerId::Second => 0.0,
         };
 
         let player_channel = [[player_num; 8]; 8];
@@ -268,7 +258,7 @@ impl Game for Othello {
         self.board
     }
 
-    fn get_winner(&self) -> Option<Self::PlayerId> {
+    fn get_winner(&self) -> Option<PlayerId> {
         // Count up
         let mut black_tiles = 0;
         let mut white_tiles = 0;

@@ -2,7 +2,7 @@ use core::fmt;
 use std::collections::HashMap;
 
 use dfdx::prelude::*;
-use rust_games_shared::{Game, Strategy};
+use rust_games_shared::{Game, PlayerId, Strategy};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TTTState {
@@ -12,27 +12,19 @@ pub enum TTTState {
 }
 
 impl TTTState {
-    fn to_player(&self) -> Option<PlayerSymbol> {
+    fn to_player(&self) -> Option<PlayerId> {
         match self {
             TTTState::Empty => None,
-            TTTState::X => Some(PlayerSymbol::X),
-            TTTState::O => Some(PlayerSymbol::O),
+            TTTState::X => Some(PlayerId::First),
+            TTTState::O => Some(PlayerId::Second),
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
-pub enum PlayerSymbol {
-    X,
-    O,
-}
-
-impl PlayerSymbol {
-    fn to_state(&self) -> TTTState {
-        match self {
-            PlayerSymbol::X => TTTState::X,
-            PlayerSymbol::O => TTTState::O,
-        }
+fn to_state(id: &PlayerId) -> TTTState {
+    match id {
+        PlayerId::First => TTTState::X,
+        PlayerId::Second => TTTState::O,
     }
 }
 
@@ -63,15 +55,13 @@ impl fmt::Display for TTTMove {
 #[derive(Debug, Clone)]
 pub struct TicTacToe {
     board: [[TTTState; 3]; 3],
-    playing: PlayerSymbol,
+    playing: PlayerId,
 }
 
 impl Game for TicTacToe {
     type Move = TTTMove;
 
     type Board = [[TTTState; 3]; 3];
-
-    type PlayerId = PlayerSymbol;
 
     type BoardSize = Const<3>;
 
@@ -86,7 +76,7 @@ impl Game for TicTacToe {
     fn new() -> Self {
         Self {
             board: [[TTTState::Empty; 3]; 3],
-            playing: PlayerSymbol::X,
+            playing: PlayerId::First,
         }
     }
 
@@ -100,7 +90,7 @@ impl Game for TicTacToe {
         }
         println!();
         println!("   1 2 3");
-        println!("Currently playing: {}", self.playing.to_state());
+        println!("Currently playing: {}", to_state(&self.playing));
     }
 
     fn to_nn_input(
@@ -131,8 +121,8 @@ impl Game for TicTacToe {
         }
 
         let player_num = match self.playing {
-            PlayerSymbol::X => 1.0_f32,
-            PlayerSymbol::O => 0.0,
+            PlayerId::First => 1.0_f32,
+            PlayerId::Second => 0.0,
         };
 
         let player_channel = [[player_num; 3]; 3];
@@ -160,10 +150,10 @@ impl Game for TicTacToe {
     }
 
     fn make_move(&mut self, m: Self::Move) {
-        self.board[m.x][m.y] = self.playing.to_state();
+        self.board[m.x][m.y] = to_state(&self.playing);
         self.playing = match self.playing {
-            PlayerSymbol::X => PlayerSymbol::O,
-            PlayerSymbol::O => PlayerSymbol::X,
+            PlayerId::First => PlayerId::Second,
+            PlayerId::Second => PlayerId::First,
         };
     }
 
@@ -172,7 +162,7 @@ impl Game for TicTacToe {
             self.legal_moves().is_empty()
     }
 
-    fn get_winner(&self) -> Option<Self::PlayerId> {
+    fn get_winner(&self) -> Option<PlayerId> {
         // Horizontal
         for d in 0..3 {
             if self.board[d][0] == self.board[d][1] && self.board[d][0] == self.board[d][2] {
@@ -196,7 +186,7 @@ impl Game for TicTacToe {
         None
     }
 
-    fn current_player(&self) -> Self::PlayerId {
+    fn current_player(&self) -> PlayerId {
         self.playing
     }
 
@@ -214,10 +204,10 @@ impl Game for TicTacToe {
 
     fn associate_players(
         players: Vec<&Strategy<Self>>,
-    ) -> std::collections::HashMap<Self::PlayerId, &Strategy<Self>> {
+    ) -> std::collections::HashMap<PlayerId, &Strategy<Self>> {
         let mut players_map = HashMap::new();
-        players_map.insert(PlayerSymbol::X, players[0]);
-        players_map.insert(PlayerSymbol::O, players[1]);
+        players_map.insert(PlayerId::First, players[0]);
+        players_map.insert(PlayerId::Second, players[1]);
 
         players_map
     }

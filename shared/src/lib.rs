@@ -9,20 +9,25 @@ use std::{
     rc::Rc,
 };
 
-
 use dfdx::prelude::{Tensor, ConstDim, AutoDevice, Const};
 
 #[derive(Debug)]
 pub enum GameResult {
-    Winner(String),
+    Winner((PlayerId, String)),
     Tie,
-    Ranking(Vec<String>),
+    Ranking(Vec<(PlayerId, String)>),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
+pub enum PlayerId {
+    //TODO: Multiplayer?
+    First,
+    Second,
 }
 
 pub trait Game: Clone + Debug {
     type Move: Copy + Debug + Display + Hash + Eq;
     type Board: Eq;
-    type PlayerId: Copy + Hash + Eq;
 
     type BoardSize: ConstDim;
     type TotalBoardSize: ConstDim;
@@ -76,7 +81,7 @@ pub trait Game: Clone + Debug {
         }
 
         match game.get_winner() {
-            Some(player_id) => GameResult::Winner(player_map.get(&player_id).unwrap().name.clone()),
+            Some(player_id) => GameResult::Winner((player_id, player_map.get(&player_id).unwrap().name.clone())),
             None => GameResult::Tie,
         }
     }

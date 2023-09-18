@@ -23,7 +23,7 @@ impl<'a, G: Game> Leaderboard<G> {
 
     fn update(&mut self, players: Vec<String>, result: GameResult) {
         match result {
-            GameResult::Winner(winner_name) => {
+            GameResult::Winner((_winner_id, winner_name)) => {
                 let old_winner_elo = self.strategies.get(&winner_name).unwrap().elo.clone();
                 for player in players {
                     if player.eq(&winner_name) {
