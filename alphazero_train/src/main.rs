@@ -7,40 +7,80 @@ mod test_new;
 mod train_utils;
 
 use alphazero::{load_from_file, re_init_best_and_latest, BoardGameModel, MCTSConfig};
+use clap::Parser;
 use dfdx::{optim::Adam, prelude::*};
 use games_list::GamesHolder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_games::Othello;
+use rust_games_main::Leaderboard;
+use rust_games_players::{AlphaZero, Corners};
+use rust_games_shared::Strategy;
 use test_new::test_new_model;
 use train_utils::update_from_gamesholder;
 
+#[derive(Parser)]
+struct TrainArgs {
+    #[arg(short, long, default_value_t = 10)]
+    train_iter: usize,
+
+    #[arg(short, long)]
+    batch_size: usize,
+
+    #[arg(short, long)]
+    num_batches: usize,
+
+    #[arg(short, long, default_value_t = 4_000)]
+    capacity: usize,
+
+    #[arg(short, long)]
+    num_self_play_games: usize,
+
+    #[arg(short, long)]
+    num_test_games: usize,
+
+    #[arg(short, long)]
+    training_traversal_iter: usize,
+
+    #[arg(short, long, default_value_t = 1.0)]
+    training_temp: f32,
+
+    #[arg(short, long)]
+    test_traversal_iter: usize,
+
+    #[arg(short, long, default_value_t = 1.0)]
+    test_temp: f32,
+}
+
 fn main() {
     type G = Othello;
-    const TRAIN_ITER: usize = 15;
-    const BATCH_SIZE: usize = 40; // AlphaGo: 2048
-    const NUM_BATCHES: usize = 200; // AlphaGo: 1000
-    const CAPACITY: usize = 4_000; // AlphaGo: 500_000
-    const NUM_SELF_PLAY_GAMES: usize = 10; // AlphaGo: 25_000
-    const NUM_TEST_GAMES: usize = 5; // AlphaGo: ?? Maybe 20?
+
+    let args = TrainArgs::parse();
+
+    // const TRAIN_ITER: usize = 15;
+    // const BATCH_SIZE: usize = 40; // AlphaGo: 2048
+    // const NUM_BATCHES: usize = 20; // AlphaGo: 1000
+    // const CAPACITY: usize = 4_000; // AlphaGo: 500_000
+    // const NUM_SELF_PLAY_GAMES: usize = 2; // AlphaGo: 25_000
+    // const NUM_TEST_GAMES: usize = 2; // AlphaGo: ?? Maybe 20?
 
     let training_games_cfg = MCTSConfig {
-        traversal_iter: 200, // AlphaGo: 1600
-        temperature: 1.0, // AlphaGo: 1.0, but lowers over time
+        traversal_iter: args.training_traversal_iter, // AlphaGo: 1600
+        temperature: args.training_temp, // AlphaGo: 1.0, but lowers over time
     };
     let test_games_cfg = MCTSConfig {
-        traversal_iter: 100, // AlphaGo: 1600
-        temperature: 1.0,    // AlphaGo: 1.0, but lowers over time
+        traversal_iter: args.test_traversal_iter, // AlphaGo: 1600
+        temperature: args.test_temp,    // AlphaGo: 1.0, but lowers over time
     };
-    // Full train loop
+    ////// Full train loop
 
-    // First, randomize "best" and "latest"
-    let dev: AutoDevice = Default::default();
+    //// First, randomize "best" and "latest"
+    let dev: AutoDevice = AutoDevice::seed_from_u64(0);
     let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
     re_init_best_and_latest::<G>(data_dir, &dev);
-    
+
     let mut gh: GamesHolder<G> = GamesHolder {
         games: vec![],
-        capacity: CAPACITY,
+        capacity: args.capacity,
     };
 
     let mut model =
@@ -58,16 +98,16 @@ fn main() {
         },
     );
 
-    // Then, any number of times
-    let progress_bar = ProgressBar::new(TRAIN_ITER as u64).with_style(
+    //// Then, any number of times
+    let progress_bar = ProgressBar::new(args.train_iter as u64).with_style(
         ProgressStyle::default_bar()
             .template("Train Iters |{wide_bar}| {pos}/{len} [{elapsed_precise}>{eta_precise}]")
             .unwrap(),
     );
     progress_bar.inc(0);
-    for _ in 0..TRAIN_ITER {
+    for _ in 0..args.train_iter {
         // The current best player plays NUM_SELF_PLAY_GAMES against itself
-        gh.add_n_games::<BoardGameModel<G>>("best", data_dir, NUM_SELF_PLAY_GAMES, &training_games_cfg);
+        gh.add_n_games::<BoardGameModel<G>>("best", data_dir, args.num_self_play_games, &training_games_cfg);
 
         // Then, train the network on NUM_BATCHES batches of examples, each of size BATCH_SIZE
         update_from_gamesholder(
@@ -75,16 +115,21 @@ fn main() {
             &mut opt, 
             &dev, 
             &gh, 
-            BATCH_SIZE, 
-            NUM_BATCHES,
+            args.batch_size, 
+            args.num_batches,
         );
 
-        // Play the current network against the best network,
+        //// Play the current network against the best network
+        // 
+        // Save & load the model to end up with a "clean" validation model,
+        // untracked by optimizer. This makes it much faster.
+        model.save_safetensors(format!("{}/latest.safetensors", data_dir)).unwrap();
+        let test_model = load_from_file::<G, BoardGameModel<G>>(&format!("{}/latest.safetensors", data_dir), &dev);
         let res = test_new_model::<G, BoardGameModel<G>>(
-            &model,
+            &test_model,
             "best",
             data_dir,
-            NUM_TEST_GAMES,
+            args.num_test_games,
             &test_games_cfg
         );
 
@@ -98,6 +143,21 @@ fn main() {
 
         //Print the winner of this iteration
         println!("{:?}", res);
+
+        //// Play some games against Corners
+        let bot = Strategy::new(
+            "AlphaZero Best".to_string(),
+            AlphaZero::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
+        );
+
+        let corner_player = Strategy::new("Corners".to_string(), Corners::new());
+
+        let players = vec![bot, corner_player];
+
+        let mut arena = Leaderboard::new(players);
+        arena.play_random_games(args.num_test_games);
+        arena.print();
+        
 
         // Progress bar
         progress_bar.inc(1);
