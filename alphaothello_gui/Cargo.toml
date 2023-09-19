@@ -1,0 +1,15 @@
+[package]
+name = "alphaothello_gui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dfdx = {version = "0.13.0", features = ["safetensors"]}
+alphazero = {path = "../alphazero"}
+rust_games_shared = {path = "../shared"}
+rust_games_games = {path = "../games"}
+rust_games_players = {path = "../players"}
+rust_games_main = {path = "../main"}
+druid = "0.7.0"

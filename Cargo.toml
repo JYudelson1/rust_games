@@ -2,6 +2,7 @@
 members = [
     "games",
     "alphazero",
+    "alphaothello_gui",
     "alphazero_train",
     "shared",
     "players",
