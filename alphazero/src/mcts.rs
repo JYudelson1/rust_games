@@ -63,6 +63,11 @@ where
     This is calculated using exponentiated visit count, described [here](https://gwern.net/doc/reinforcement-learning/model/alphago/2017-silver.pdf#page=8).
      */
     fn best_child_visitcount(&mut self, temperature: f32) -> Option<&mut ActionNode<G>> {
+
+        if self.children.is_empty() {
+            return None;
+        }
+
         let mut visit_counts = vec![];
 
         for child in self.children.iter(){
@@ -99,6 +104,7 @@ where
             let (p, v) = model.forward(subgame.to_nn_input());
             let mut v_value = v.array()[0];
 
+            
             // If the new node is terminal, set v to the value associated with the winning player
             // Rather than the model's guess, which would just estimate this anyways
             if subgame.is_over() {
@@ -181,6 +187,7 @@ where
                 let mut current = self.root.get_mut();
                 let mut index;
 
+                // Find a new traversal path, from the root all the way to a leaf node
                 while !current.children.is_empty() {
                     (current, index) = current
                         .best_child_traversal(self.temperature, &self.index_map)
@@ -204,6 +211,10 @@ where
                 (*parent).n = parent.n + 1;
                 parent = parent.children.get_mut(*parent_index).unwrap();
             }
+            // Now update the leaf node
+            (*parent).q = (parent.q * (parent.n as f32) + child_v) / ((parent.n + 1) as f32);
+            (*parent).n = parent.n + 1;
+
         }
     }
 
