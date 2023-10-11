@@ -61,18 +61,17 @@ impl<'a, G: Game> Leaderboard<G> {
             .map(|k| **k)
             .collect();
 
-        let mut players: Vec<Strategy<G>> = player_indices
+        let players: Vec<Strategy<G>> = player_indices
             .iter()
-            .map(|key| self.strategies.get_mut(key).unwrap().clone())
-            .collect();
-
-        // Reset internal information for players who carry it
-        // e.g. Resetting the MCTS of an alphazero-style player
-        for player in players.iter_mut() {
-            Rc::<(dyn Player<G> + 'static)>::get_mut(&mut player.player)
+            .map(|key| {
+                Rc::<(dyn Player<G> + 'static)>::get_mut(&mut self.strategies.get_mut(key).unwrap().player)
                 .unwrap()
                 .reset();
-        }
+            
+                self.strategies.get_mut(key).unwrap().clone()
+            })
+            .collect();
+
         let players = players.iter().map(|strat| strat).collect();
 
         //println!("{:?}", player_names);
