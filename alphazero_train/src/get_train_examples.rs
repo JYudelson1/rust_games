@@ -77,7 +77,7 @@ where
 
         let winner_num: f32;
         match result {
-            rust_games_shared::GameResult::Winner((winner_id, _name)) => {
+            rust_games_shared::GameResult::Winner(winner_id) => {
                 winner_num = if winner_id == PlayerId::First {
                     1.0
                 } else if winner_id == PlayerId::Second {

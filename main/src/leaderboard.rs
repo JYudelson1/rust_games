@@ -4,16 +4,16 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rand::{rngs::ThreadRng, seq::IteratorRandom};
 use rust_games_shared::{Elo, Game, GameResult, Player, Strategy};
 pub struct Leaderboard<G: Game> {
-    pub strategies: HashMap<String, Strategy<G>>,
+    pub strategies: HashMap<usize, Strategy<G>>,
     rng: ThreadRng,
 }
 
 impl<'a, G: Game> Leaderboard<G> {
     pub fn new(strategies: Vec<Strategy<G>>) -> Self {
         let rng = rand::thread_rng();
-        let mut strats = HashMap::new();
-        for strat in strategies {
-            strats.insert(strat.name.clone(), strat);
+        let mut strats: HashMap<usize, Strategy<G>> = HashMap::new();
+        for (i, strat) in strategies.iter().enumerate() {
+            strats.insert(i, strat.clone());
         }
         Leaderboard {
             strategies: strats,
@@ -21,16 +21,19 @@ impl<'a, G: Game> Leaderboard<G> {
         }
     }
 
-    fn update(&mut self, players: Vec<String>, result: GameResult) {
+    fn update(&mut self, players: Vec<usize>, result: GameResult) {
         match result {
-            GameResult::Winner((_winner_id, winner_name)) => {
-                let old_winner_elo = self.strategies.get(&winner_name).unwrap().elo.clone();
+            GameResult::Winner(winner_id) => {
+
+                let winner_index = players[winner_id as usize];
+
+                let old_winner_elo = self.strategies.get(&winner_index).unwrap().elo.clone();
                 for player in players {
-                    if player.eq(&winner_name) {
+                    if player.eq(&winner_index) {
                         continue;
                     }
                     let player_elo = self.strategies.get(&player).unwrap().elo.clone();
-                    let winner = self.strategies.get_mut(&winner_name).unwrap();
+                    let winner = self.strategies.get_mut(&winner_index).unwrap();
                     (*winner).elo = elo_win(winner.elo, player_elo);
                     (*self.strategies.get_mut(&player).unwrap()).elo =
                         elo_loss(player_elo, old_winner_elo)
@@ -50,22 +53,32 @@ impl<'a, G: Game> Leaderboard<G> {
     }
 
     pub fn play_random_game(&mut self, verbose: bool) {
-        let mut players = self
+        let player_indices: Vec<usize> = self
             .strategies
-            .values_mut()
-            .choose_multiple(&mut self.rng, G::NUM_PLAYERS);
-        let player_names: Vec<String> = players.iter().map(|p| p.name.clone()).collect();
+            .keys()
+            .choose_multiple(&mut self.rng, G::NUM_PLAYERS)
+            .iter()
+            .map(|k| **k)
+            .collect();
+
+        let mut players: Vec<Strategy<G>> = player_indices
+            .iter()
+            .map(|key| self.strategies.get_mut(key).unwrap().clone())
+            .collect();
+
+        // Reset internal information for players who carry it
+        // e.g. Resetting the MCTS of an alphazero-style player
         for player in players.iter_mut() {
             Rc::<(dyn Player<G> + 'static)>::get_mut(&mut player.player)
                 .unwrap()
                 .reset();
         }
-        let players = players.iter().map(|strat| &**strat).collect();
+        let players = players.iter().map(|strat| strat).collect();
 
         //println!("{:?}", player_names);
         let result = G::play_full_game(players, verbose);
 
-        self.update(player_names, result);
+        self.update(player_indices, result);
     }
 
     pub fn play_random_games(&mut self, n: usize) {
@@ -85,8 +98,10 @@ impl<'a, G: Game> Leaderboard<G> {
     }
 
     pub fn print(&self) {
-        for strat_name in self.strategies.keys() {
-            let elo = self.strategies.get(&strat_name.clone()).unwrap().elo;
+        for strat_id in self.strategies.keys() {
+            let strat = self.strategies.get(&strat_id).unwrap();
+            let elo = strat.elo;
+            let strat_name = &strat.name;
             println!(
                 "{} has ELO {:.0} and {} wins",
                 strat_name, elo.rating, elo.wins

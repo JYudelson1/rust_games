@@ -287,11 +287,11 @@ impl Game for Othello {
         }
 
         if black_tiles < white_tiles {
-            Some(GameResult::Winner((PlayerId::Second, "".to_string())))
+            Some(GameResult::Winner(PlayerId::Second))
         } else if black_tiles == white_tiles {
             Some(GameResult::Tie)
         } else {
-            Some(GameResult::Winner((PlayerId::First, "".to_string())))
+            Some(GameResult::Winner(PlayerId::First))
         }
     }
 

@@ -61,7 +61,7 @@ where
     let mut arena = Leaderboard::new(players);
     arena.play_random_games(num_iterations);
 
-    let new_model_wins = arena.strategies.get("New AlphaZero").unwrap().elo.wins;
+    let new_model_wins = arena.strategies.get(&1).unwrap().elo.wins;
 
     let new_win_percentage = (new_model_wins as f32) / (num_iterations as f32);
     let result = if new_win_percentage >= 0.6 {

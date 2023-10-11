@@ -111,7 +111,7 @@ where
             // Rather than the model's guess, which would just estimate this anyways
             if subgame.is_over() {
                 match subgame.get_result().unwrap() {
-                    GameResult::Winner((winner_id, _name)) => {
+                    GameResult::Winner(winner_id) => {
                         v_value = if winner_id == PlayerId::First {
                             1.0
                         } else if winner_id == PlayerId::Second {

@@ -166,21 +166,21 @@ impl Game for TicTacToe {
         // Horizontal
         for d in 0..3 {
             if self.board[d][0] == self.board[d][1] && self.board[d][0] == self.board[d][2] {
-                return Some(GameResult::Winner((self.board[d][0].to_player().unwrap(), "".to_string())));
+                return Some(GameResult::Winner(self.board[d][0].to_player().unwrap()));
             }
         }
         // Vertical
         for d in 0..3 {
             if self.board[0][d] == self.board[1][d] && self.board[0][d] == self.board[2][d] {
-                return Some(GameResult::Winner((self.board[0][d].to_player().unwrap(), "".to_string())));
+                return Some(GameResult::Winner(self.board[0][d].to_player().unwrap()));
             }
         }
         // Diagonal
         if self.board[0][0] == self.board[1][1] && self.board[0][0] == self.board[2][2] {
-            return Some(GameResult::Winner((self.board[1][1].to_player().unwrap(), "".to_string())));
+            return Some(GameResult::Winner(self.board[1][1].to_player().unwrap()));
         }
         if self.board[0][2] == self.board[1][1] && self.board[0][2] == self.board[2][0] {
-            return Some(GameResult::Winner((self.board[1][1].to_player().unwrap(), "".to_string())));
+            return Some(GameResult::Winner(self.board[1][1].to_player().unwrap()));
         }
 
         None

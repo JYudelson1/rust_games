@@ -13,9 +13,9 @@ use dfdx::prelude::{Tensor, ConstDim, AutoDevice, Const};
 
 #[derive(Debug)]
 pub enum GameResult {
-    Winner((PlayerId, String)),
+    Winner(PlayerId),
     Tie,
-    Ranking(Vec<(PlayerId, String)>),
+    Ranking(Vec<PlayerId>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Hash, Eq)]
@@ -23,6 +23,15 @@ pub enum PlayerId {
     //TODO: Multiplayer?
     First,
     Second,
+}
+
+impl From<PlayerId> for usize {
+    fn from(value: PlayerId) -> Self {
+        match value {
+            PlayerId::First => 0,
+            PlayerId::Second => 1,
+        }
+    }
 }
 
 pub trait Game: Clone + Debug {
