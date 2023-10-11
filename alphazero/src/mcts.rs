@@ -1,7 +1,7 @@
 use crate::{nn::load_from_file, UnfinishedTrainingExample};
 use dfdx::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::Distribution, thread_rng};
-use rust_games_shared::{Game, PlayerError};
+use rust_games_shared::{Game, GameResult, PlayerError, PlayerId};
 use std::{cell::Cell, collections::HashMap};
 
 #[derive(Clone, Debug)]
@@ -97,13 +97,32 @@ where
             subgame.make_move(action);
 
             let (p, v) = model.forward(subgame.to_nn_input());
+            let mut v_value = v.array()[0];
+
+            // If the new node is terminal, set v to the value associated with the winning player
+            // Rather than the model's guess, which would just estimate this anyways
+            if subgame.is_over() {
+                match subgame.get_result().unwrap() {
+                    GameResult::Winner((winner_id, _name)) => {
+                        v_value = if winner_id == PlayerId::First {
+                            1.0
+                        } else if winner_id == PlayerId::Second {
+                            -1.0
+                        } else {
+                            panic!("Weird player name issue");
+                        };
+                    }
+                    GameResult::Tie => v_value = 0.0,
+                    GameResult::Ranking(_) => todo!(),
+                }
+            }
 
             let new_node: ActionNode<G> = ActionNode {
                 action: Some(action),
                 post_state: subgame,
                 q: 0.0,
                 n: 0,
-                v: v.array()[0],
+                v: v_value,
                 p: p.array(),
                 children: vec![],
             };
