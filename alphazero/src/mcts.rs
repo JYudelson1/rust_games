@@ -27,7 +27,7 @@ where
      */
     pub fn best_child_traversal(&mut self, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
         let mut best = None;
-        let mut highest_u: Option<f32> = None;
+        let mut highest_value: Option<f32> = None;
         let mut best_index: usize = 0;
 
         let root_visits: f32 = (self.n as f32).sqrt();
@@ -44,12 +44,12 @@ where
 
             let c_puct = 1.25 + ((19653_f32 + (self.n as f32)) / 19652_f32).log2();
             let p_index = index_map.get(&child.action.unwrap()).unwrap();
-            let u = child.q * turn_order_factor
+            let value = child.q * turn_order_factor
                 + (c_puct * (child.p)[*p_index] * root_visits / (1.0 + child.n as f32));
 
-            if highest_u == None || u > highest_u.unwrap() {
+            if highest_value == None || value > highest_value.unwrap() {
                 best = Some(child);
-                highest_u = Some(u);
+                highest_value = Some(value);
                 best_index = i;
             }
         }
