@@ -49,7 +49,7 @@ struct TrainArgs {
     #[arg(short, long)]
     test_traversal_iter: usize,
 
-    #[arg(short, long, default_value_t = 0.001)]
+    #[arg(short, long, default_value_t = 0.2)]
     test_temp: f32,
 }
 
@@ -109,7 +109,12 @@ fn main() {
     progress_bar.inc(0);
     for _ in 0..args.train_iter {
         // The current best player plays NUM_SELF_PLAY_GAMES against itself
-        gh.add_n_games::<BoardGameModel<G>>("best", data_dir, args.num_self_play_games, &training_games_cfg);
+        gh.add_n_games::<BoardGameModel<G>>(
+            "best", 
+            data_dir, 
+            args.num_self_play_games,
+            &training_games_cfg,
+        );
 
         // Then, train the network on NUM_BATCHES batches of examples, each of size BATCH_SIZE
         update_from_gamesholder(
@@ -149,7 +154,7 @@ fn main() {
         //// Play some games against Corners
         let bot = Strategy::new(
             "AlphaZero Best".to_string(),
-            AlphaZeroPlayer::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
+            AlphaZeroPlayer::new_from_file::<BoardGameModel<G>>("best",data_dir, 0.2, &dev, false, 100),
         );
 
         let corner_player = Strategy::new("Corners".to_string(), Corners::new());
