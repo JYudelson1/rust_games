@@ -115,9 +115,18 @@ impl Othello {
                 }
             }
         }
-    tiles}
+        tiles
+            }
         }
-}
+    }
+
+    pub fn new_from_board(board: [[OthelloState; 8]; 8], playing: PlayerId) -> Othello {
+        Othello {
+            board,
+            playing,
+            last_was_pass: false,
+        }
+    }
 }
 
 impl Game for Othello {
@@ -273,34 +282,32 @@ impl Game for Othello {
         }
 
         if black_tiles < white_tiles {
-            Some(PlayerColor::White)
+            Some(PlayerId::Second)
         } else if black_tiles == white_tiles {
             None
         } else {
-            Some(PlayerColor::Black)
+            Some(PlayerId::First)
         }
     }
 
-    fn current_player(&self) -> Self::PlayerId {
+    fn current_player(&self) -> PlayerId {
         self.playing
     }
 
-    fn associate_players(
-        players: Vec<&Strategy<Self>>,
-    ) -> HashMap<Self::PlayerId, &Strategy<Self>> {
+    fn associate_players(players: Vec<&Strategy<Self>>) -> HashMap<PlayerId, &Strategy<Self>> {
         let mut players_map = HashMap::new();
-        players_map.insert(PlayerColor::Black, players[0]);
-        players_map.insert(PlayerColor::White, players[1]);
+        players_map.insert(PlayerId::First, players[0]);
+        players_map.insert(PlayerId::Second, players[1]);
 
         players_map
     }
 
-    fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES] {
+    fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES]{
         let mut moves = [OthelloMove::Pass; Self::TOTAL_MOVES];
 
-        for x in 0..7 {
-            for y in 0..7 {
-                moves[x + 8 * y] = OthelloMove::Move(x, y)
+        for x in 0..8 {
+            for y in 0..8 {
+                moves[(8 * x) + y] = OthelloMove::Move(x, y)
             }
         }
 
