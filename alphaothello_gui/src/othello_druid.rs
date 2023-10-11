@@ -3,10 +3,7 @@ use std::rc::Rc;
 use alphazero::BoardGameModel;
 use dfdx::prelude::*;
 use druid::widget::{Button, CrossAxisAlignment, Flex, Label, Painter};
-use druid::{
-    theme, AppLauncher, Color, Data, Env, Lens, LocalizedString, RenderContext, Widget, WidgetExt,
-    WindowDesc,
-};
+use druid::{Color, Data, Env, Lens, RenderContext, Widget, WidgetExt};
 use rust_games_games::{Othello, OthelloState};
 use rust_games_shared::{Game, PlayerId};
 
