@@ -6,14 +6,16 @@ mod get_train_examples;
 mod test_new;
 mod train_utils;
 
-use alphazero::{load_from_file, re_init_best_and_latest, BoardGameModel, MCTSConfig};
+use alphazero::{
+    load_from_file, re_init_best_and_latest, AlphaZeroPlayer, BoardGameModel, MCTSConfig,
+};
 use clap::Parser;
 use dfdx::{optim::Adam, prelude::*};
 use games_list::GamesHolder;
 use indicatif::{ProgressBar, ProgressStyle};
 use rust_games_games::Othello;
 use rust_games_main::Leaderboard;
-use rust_games_players::{AlphaZero, Corners};
+use rust_games_players::Corners;
 use rust_games_shared::Strategy;
 use test_new::test_new_model;
 use train_utils::update_from_gamesholder;
@@ -147,7 +149,7 @@ fn main() {
         //// Play some games against Corners
         let bot = Strategy::new(
             "AlphaZero Best".to_string(),
-            AlphaZero::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
+            AlphaZeroPlayer::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
         );
 
         let corner_player = Strategy::new("Corners".to_string(), Corners::new());

@@ -1,7 +1,6 @@
-use alphazero::MCTSConfig;
+use alphazero::{AlphaZeroPlayer, MCTSConfig};
 use dfdx::prelude::*;
 use rust_games_main::Leaderboard;
-use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Strategy};
 
 #[derive(Debug)]
@@ -44,7 +43,7 @@ where
 
     let old_az = Strategy::new(
         "Old Alphazero".to_string(),
-        AlphaZero::new_from_file::<B>(
+        AlphaZeroPlayer::new_from_file::<B>(
             best_model_name, 
             data_dir, 
             mcts_cfg.temperature, 
@@ -55,7 +54,7 @@ where
 
     let new_az = Strategy::new(
         "New AlphaZero".to_string(),
-        AlphaZero::new(new_model.clone(), mcts_cfg.temperature, false, mcts_cfg.traversal_iter),
+        AlphaZeroPlayer::new(new_model.clone(), mcts_cfg.temperature, false, mcts_cfg.traversal_iter),
     );
 
     let players = vec![old_az, new_az];

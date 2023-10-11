@@ -1,12 +1,11 @@
 use std::rc::Rc;
 
-use alphazero::{MCTSConfig, TrainingExample};
+use alphazero::{AlphaZeroPlayer, MCTSConfig, TrainingExample};
 use dfdx::{
     prelude::{AutoDevice, BuildOnDevice, Const, ConstDim, Module, Tensor},
     tensor::HasErr,
 };
 use indicatif::ProgressStyle;
-use rust_games_players::AlphaZero;
 use rust_games_shared::{Game, Player, PlayerId, Strategy};
 
 pub(crate) fn training_games<G: Game + 'static, B: BuildOnDevice<AutoDevice, f32> + 'static>(
@@ -47,12 +46,12 @@ where
 
     let dev: AutoDevice = Default::default();
 
-    let az1: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
+    let az1: AlphaZeroPlayer<G, _> =
+        AlphaZeroPlayer::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
     let mut player1 = Strategy::new("Player1".to_string(), az1);
 
-    let az2: AlphaZero<G, _> =
-        AlphaZero::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
+    let az2: AlphaZeroPlayer<G, _> =
+        AlphaZeroPlayer::new_from_file::<B>(model_name, data_dir, mcts_cfg.temperature, &dev, true, mcts_cfg.traversal_iter);
     let mut player2 = Strategy::new("Player2".to_string(), az2);
 
     let mut players_mut = vec![&mut player1, &mut player2];
@@ -94,7 +93,7 @@ where
         let examples1 = &players_mut[0]
             .player
             .as_any()
-            .downcast_ref::<AlphaZero<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
+            .downcast_ref::<AlphaZeroPlayer<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
             .unwrap()
             .mcts
             .borrow_mut()
@@ -103,7 +102,7 @@ where
         let examples2 = &players_mut[1]
             .player
             .as_any()
-            .downcast_ref::<AlphaZero<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
+            .downcast_ref::<AlphaZeroPlayer<G, <B as BuildOnDevice<AutoDevice, f32>>::Built>>()
             .unwrap()
             .mcts
             .borrow_mut()
@@ -132,7 +131,7 @@ where
         progress_bar.inc(1);
     }
 
-    progress_bar.finish_and_clear();
+    progress_bar.finish(); //TODO: finish_and_clear
 
     all_finished_examples
 }
