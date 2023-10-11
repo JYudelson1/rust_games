@@ -88,7 +88,7 @@ impl<'a, G: Game> Leaderboard<G> {
         for strat_name in self.strategies.keys() {
             let elo = self.strategies.get(&strat_name.clone()).unwrap().elo;
             println!(
-                "{} has ELO {} and {} wins",
+                "{} has ELO {:.0} and {} wins",
                 strat_name, elo.rating, elo.wins
             )
         }
