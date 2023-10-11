@@ -25,7 +25,7 @@ where
     Chooses the next child to examine during the MCTS traversal.
     This is calculated using AlphaGo's variant PUCT algorithm, described [here](https://gwern.net/doc/reinforcement-learning/model/alphago/2017-silver.pdf#page=8).
      */
-    pub fn best_child_traversal(&mut self, temperature: f32, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
+    pub fn best_child_traversal(&mut self, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
         let mut best = None;
         let mut highest_u: Option<f32> = None;
         let mut best_index: usize = 0;
@@ -40,10 +40,12 @@ where
                 rust_games_shared::PlayerId::First => 1.0_f32,
                 rust_games_shared::PlayerId::Second => -1.0_f32,
             };
-            // TODO: This temperature should probably depend on the number of moves throughout the game, like in the AG paper
+            // c_PUCT is calculates as in the [MuZero paper](https://arxiv.org/pdf/1911.08265.pdf).
+
+            let c_puct = 1.25 + ((19653_f32 + (self.n as f32)) / 19652_f32).log2();
             let p_index = index_map.get(&child.action.unwrap()).unwrap();
             let u = child.q * turn_order_factor
-                + (temperature * (child.p)[*p_index] * root_visits / (1.0 + child.n as f32));
+                + (c_puct * (child.p)[*p_index] * root_visits / (1.0 + child.n as f32));
 
             if highest_u == None || u > highest_u.unwrap() {
                 best = Some(child);
@@ -190,7 +192,7 @@ where
                 // Find a new traversal path, from the root all the way to a leaf node
                 while !current.children.is_empty() {
                     (current, index) = current
-                        .best_child_traversal(self.temperature, &self.index_map)
+                        .best_child_traversal(&self.index_map)
                         .expect("There should be a child of current node!");
                     path.push(index);
                 }
