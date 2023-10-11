@@ -37,7 +37,7 @@ where
         model_name: &str,
         data_dir: &str,
         num_games: usize,
-        mcts_cfg: &MCTSConfig
+        mcts_cfg: &MCTSConfig,
     ) where
         [(); G::TOTAL_MOVES]: Sized,
         [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
@@ -62,6 +62,7 @@ where
     {
         let examples = training_games::<G, B>(model_name, data_dir, num_games, mcts_cfg);
         self.extend(examples);
+        // TODO: Should totally be possible to rotate these boards iff we're playing othello
     }
 }
 
