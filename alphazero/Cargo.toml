@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 dfdx = {version = "0.13.0", features = ["safetensors"]}
 rust_games_shared = { path = "../shared"}
+rand = "0.8.5"
 
 # Need some example games for tests
 [dev-dependencies]

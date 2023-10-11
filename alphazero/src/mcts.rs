@@ -1,10 +1,8 @@
-use std::{cell::Cell, collections::HashMap};
-
+use crate::{nn::load_from_file, UnfinishedTrainingExample};
 use dfdx::prelude::*;
-
+use rand::{distributions::WeightedIndex, prelude::Distribution, thread_rng};
 use rust_games_shared::{Game, PlayerError};
-
-use crate::{UnfinishedTrainingExample, nn::load_from_file};
+use std::{cell::Cell, collections::HashMap};
 
 #[derive(Clone, Debug)]
 pub struct ActionNode<G: Game> 
@@ -23,7 +21,11 @@ where
     Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
     [(); G::TOTAL_MOVES]: Sized
 {
-    pub fn best_child(&mut self, temperature: f32, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
+    /*
+    Chooses the next child to examine during the MCTS traversal.
+    This is calculated using AlphaGo's variant PUCT algorithm, described [here](https://gwern.net/doc/reinforcement-learning/model/alphago/2017-silver.pdf#page=8).
+     */
+    pub fn best_child_traversal(&mut self, temperature: f32, index_map: &HashMap<G::Move, usize>) -> Option<(&mut ActionNode<G>, usize)> {
         let mut best = None;
         let mut highest_u: Option<f32> = None;
         let mut best_index: usize = 0;
@@ -38,7 +40,7 @@ where
                 rust_games_shared::PlayerId::First => 1.0_f32,
                 rust_games_shared::PlayerId::Second => -1.0_f32,
             };
-
+            // TODO: This temperature should probably depend on the number of moves throughout the game, like in the AG paper
             let p_index = index_map.get(&child.action.unwrap()).unwrap();
             let u = child.q * turn_order_factor
                 + (temperature * (child.p)[*p_index] * root_visits / (1.0 + child.n as f32));
@@ -54,6 +56,23 @@ where
             Some(child) => Some((child, best_index)),
             None => None,
         }
+    }
+
+    /*
+    Chooses the next child to examine during the MCTS traversal.
+    This is calculated using exponentiated visit count, described [here](https://gwern.net/doc/reinforcement-learning/model/alphago/2017-silver.pdf#page=8).
+     */
+    fn best_child_visitcount(&mut self, temperature: f32) -> Option<&mut ActionNode<G>> {
+        let mut visit_counts = vec![];
+
+        for child in self.children.iter(){
+            visit_counts.push((child.n as f32).powf(temperature));
+        }
+
+        let dist = WeightedIndex::new(&visit_counts).unwrap();
+        let chosen_index = dist.sample(&mut thread_rng());
+
+        Some(&mut self.children[chosen_index])
     }
 
     fn spawn_children(
@@ -145,7 +164,7 @@ where
 
                 while !current.children.is_empty() {
                     (current, index) = current
-                        .best_child(self.temperature, &self.index_map)
+                        .best_child_traversal(self.temperature, &self.index_map)
                         .expect("There should be a child of current node!");
                     path.push(index);
                 }
@@ -203,10 +222,11 @@ where
             let ex = r.to_unfinished_example();
             examples.push(ex);
         }
-        let best_child = r.best_child(self.temperature, &self.index_map);
+    
+        let best_child = r.best_child_visitcount(self.temperature);
 
         match best_child {
-            Some((child, _)) => {
+            Some(child) => {
                 let action = child.action.unwrap();
                 // Update board based on move made
                 *r = child.clone();
