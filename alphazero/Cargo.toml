@@ -9,5 +9,9 @@ edition = "2021"
 dfdx = {version = "0.13.0", features = ["safetensors"]}
 rust_games_shared = { path = "../shared"}
 
+# Need some example games for tests
+[dev-dependencies]
+rust_games_games = {path = "../games"}
+
 [features]
 cuda = ["dfdx/cuda", "rust_games_shared/cuda"]

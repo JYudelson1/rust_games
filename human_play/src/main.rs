@@ -1,7 +1,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 
-use alphazero::BoardGameModel;
+use alphazero::{BoardGameModel, AlphaZeroPlayer};
 use dfdx::tensor::AutoDevice;
 use rust_games_games::Othello;
 use rust_games_players::*;
@@ -17,10 +17,10 @@ fn main() {
     let dev: AutoDevice = Default::default();
     let bot = Strategy::new(
         "AlphaZero Best".to_string(),
-        AlphaZero::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
+        AlphaZeroPlayer::new_from_file::<BoardGameModel<G>>("best",data_dir, 1.0, &dev, false, 100),
     );
 
-    let players = vec![&human_player, &bot];
+    let players = vec![&bot, &human_player];
 
     let result = G::play_full_game(players, true);
     println!("{:?}", result);
