@@ -2,7 +2,7 @@ use core::fmt;
 use std::collections::HashMap;
 
 use dfdx::prelude::*;
-use rust_games_shared::{Game, PlayerId, Strategy};
+use rust_games_shared::{Game, GameResult, PlayerId, Strategy};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TTTState {
@@ -158,29 +158,29 @@ impl Game for TicTacToe {
     }
 
     fn is_over(&self) -> bool {
-        self.get_winner().is_some() ||
+        self.get_result().is_some() ||
             self.legal_moves().is_empty()
     }
 
-    fn get_winner(&self) -> Option<PlayerId> {
+    fn get_result(&self) -> Option<GameResult> {
         // Horizontal
         for d in 0..3 {
             if self.board[d][0] == self.board[d][1] && self.board[d][0] == self.board[d][2] {
-                return self.board[d][0].to_player();
+                return Some(GameResult::Winner((self.board[d][0].to_player().unwrap(), "".to_string())));
             }
         }
         // Vertical
         for d in 0..3 {
             if self.board[0][d] == self.board[1][d] && self.board[0][d] == self.board[2][d] {
-                return self.board[0][d].to_player();
+                return Some(GameResult::Winner((self.board[0][d].to_player().unwrap(), "".to_string())));
             }
         }
         // Diagonal
         if self.board[0][0] == self.board[1][1] && self.board[0][0] == self.board[2][2] {
-            return self.board[1][1].to_player();
+            return Some(GameResult::Winner((self.board[1][1].to_player().unwrap(), "".to_string())));
         }
         if self.board[0][2] == self.board[1][1] && self.board[0][2] == self.board[2][0] {
-            return self.board[1][1].to_player();
+            return Some(GameResult::Winner((self.board[1][1].to_player().unwrap(), "".to_string())));
         }
 
         None

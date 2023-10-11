@@ -43,7 +43,7 @@ pub trait Game: Clone + Debug {
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);
     fn is_over(&self) -> bool;
-    fn get_winner(&self) -> Option<PlayerId>;
+    fn get_result(&self) -> Option<GameResult>;
     fn current_player(&self) -> PlayerId;
 
     fn all_possible_moves() -> [Self::Move; Self::TOTAL_MOVES];
@@ -81,10 +81,7 @@ pub trait Game: Clone + Debug {
             game.print();
         }
 
-        match game.get_winner() {
-            Some(player_id) => GameResult::Winner((player_id, player_map.get(&player_id).unwrap().name.clone())),
-            None => GameResult::Tie,
-        }
+        game.get_result().expect("Game should have finished!")
     }
 }
 

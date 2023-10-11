@@ -1,5 +1,5 @@
 use dfdx::prelude::*;
-use rust_games_shared::{Game, PlayerId, Strategy};
+use rust_games_shared::{Game, GameResult, PlayerId, Strategy};
 use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -267,7 +267,12 @@ impl Game for Othello {
         self.board
     }
 
-    fn get_winner(&self) -> Option<PlayerId> {
+    fn get_result(&self) -> Option<GameResult> {
+        // Make sure the game is over
+        if !self.is_over() {
+            return None;
+        }
+
         // Count up
         let mut black_tiles = 0;
         let mut white_tiles = 0;
@@ -282,11 +287,11 @@ impl Game for Othello {
         }
 
         if black_tiles < white_tiles {
-            Some(PlayerId::Second)
+            Some(GameResult::Winner((PlayerId::Second, "".to_string())))
         } else if black_tiles == white_tiles {
-            None
+            Some(GameResult::Tie)
         } else {
-            Some(PlayerId::First)
+            Some(GameResult::Winner((PlayerId::First, "".to_string())))
         }
     }
 
