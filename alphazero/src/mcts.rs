@@ -73,7 +73,7 @@ where
         let mut visit_counts = vec![];
 
         for child in self.children.iter(){
-            visit_counts.push((child.n as f32).powf(temperature));
+            visit_counts.push((child.n as f32).powf(1.0 / temperature));
         }
 
         let dist = WeightedIndex::new(&visit_counts).unwrap();
