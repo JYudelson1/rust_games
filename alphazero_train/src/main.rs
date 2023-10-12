@@ -51,6 +51,9 @@ struct TrainArgs {
 
     #[arg(short, long, default_value_t = 0.2)]
     test_temp: f32,
+
+    #[arg(short, long)]
+    data_dir: String,
 }
 
 fn main() {
@@ -77,7 +80,7 @@ fn main() {
 
     //// First, randomize "best" and "latest"
     let dev: AutoDevice = AutoDevice::seed_from_u64(0);
-    let data_dir = "/Applications/Python 3.4/MyScripts/rust_games/data";
+    let data_dir = &args.data_dir;
     re_init_best_and_latest::<G>(data_dir, &dev);
 
     let mut gh: GamesHolder<G> = GamesHolder {
