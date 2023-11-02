@@ -21,13 +21,14 @@ where
     [(); G::CHANNELS]: Sized,
     [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
     [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
-    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSizeX as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSizeY as ConstDim>::SIZE]: Sized,
     <B as BuildOnDevice<AutoDevice, f32>>::Built: Module<
         Tensor<
             (
                 Const<{ G::CHANNELS }>,
-                <G as Game>::BoardSize,
-                <G as Game>::BoardSize,
+                <G as Game>::BoardSizeX,
+                <G as Game>::BoardSizeY,
             ),
             f32,
             AutoDevice,
@@ -60,6 +61,8 @@ where
     let players = vec![old_az, new_az];
     let mut arena = Leaderboard::new(players);
     arena.play_random_games(num_iterations);
+
+    arena.print();
 
     let new_model_wins = arena.strategies.get(&1).unwrap().elo.wins;
 

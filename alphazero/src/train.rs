@@ -6,18 +6,18 @@ use rust_games_shared::Game;
 #[derive(Clone)]
 pub struct UnfinishedTrainingExample<G: Game>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
 {
-    position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+    position: Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
     next_move_probs: Vec<(G::Move, usize)>,
 }
 
 impl<G: Game> UnfinishedTrainingExample<G>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
 {
     pub fn new(
-        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
         next_move_probs: Vec<(G::Move, usize)>,
     ) -> Self {
         UnfinishedTrainingExample {
@@ -38,16 +38,16 @@ where
 #[derive(Clone)]
 pub struct TrainingExample<G: Game>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
 {
-    position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
-    winner: f32,
-    next_move_probs: Vec<(G::Move, usize)>,
+    pub position: Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
+    pub winner: f32,
+    pub next_move_probs: Vec<(G::Move, usize)>,
 }
 
 impl<G: Game> TrainingExample<G>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
 {
     fn to_true_probs(&self, dev: &AutoDevice) -> Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice, NoneTape> {
 
@@ -72,7 +72,7 @@ where
     }
 
     pub fn new(
-        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+        position: Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
         winner: f32,
         next_move_probs: Vec<(G::Move, usize)>,
     ) -> Self {
@@ -98,8 +98,8 @@ pub fn update_on_many<
             <Tensor<
                 (
                     Const<{G::CHANNELS}>,
-                    G::BoardSize,
-                    G::BoardSize,
+                    G::BoardSizeX,
+                    G::BoardSizeY,
                 ),
                 f32,
                 AutoDevice,
@@ -139,9 +139,9 @@ pub fn update_on_many<
     Ok(())
 }
 
-fn examples_to_batch<G: Game>(
+fn examples_to_batch<G: Game + 'static>(
     examples: &Vec<&TrainingExample<G>>,
-) -> Tensor<(usize, Const<{ G::CHANNELS }>, G::BoardSize, G::BoardSize), f32, AutoDevice>
+) -> Tensor<(usize, Const<{ G::CHANNELS }>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>
 where
     [(); G::CHANNELS]: Sized,
 {
@@ -149,6 +149,7 @@ where
 
     for example in examples.iter() {
         slices.push(example.position.clone());
+        println!("{:?}", example.position.shape().strides());
     }
 
     slices.stack()
@@ -176,14 +177,14 @@ where
 }
 
 pub fn update_on_batch<
-    G: Game,
+    G: Game + 'static,
     Model: ModuleMut<
             <Tensor<
                 (
                     usize,
                     Const<{G::CHANNELS}>,
-                    G::BoardSize,
-                    G::BoardSize,
+                    G::BoardSizeX,
+                    G::BoardSizeY,
                 ),
                 f32,
                 AutoDevice,

@@ -63,7 +63,8 @@ impl Game for TicTacToe {
 
     type Board = [[TTTState; 3]; 3];
 
-    type BoardSize = Const<3>;
+    type BoardSizeX = Const<3>;
+    type BoardSizeY = Const<3>;
 
     type TotalBoardSize = Const<9>;
 
@@ -95,7 +96,7 @@ impl Game for TicTacToe {
 
     fn to_nn_input(
         &self,
-    ) -> Tensor<(Const<{ Self::CHANNELS }>, Self::BoardSize, Self::BoardSize), f32, AutoDevice>
+    ) -> Tensor<(Const<{ Self::CHANNELS }>, Self::BoardSizeX, Self::BoardSizeY), f32, AutoDevice>
     {
         let dev: AutoDevice = Default::default();
         let mut o_channel = [[0.0; 3]; 3];

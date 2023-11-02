@@ -78,7 +78,8 @@ where
     [(); G::CHANNELS]: Sized,
     [(); <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
     [(); 2 * <G::TotalBoardSize as ConstDim>::SIZE]: Sized,
-    [(); <G::BoardSize as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSizeX as ConstDim>::SIZE]: Sized,
+    [(); <G::BoardSizeY as ConstDim>::SIZE]: Sized,
     BoardGameModel<G>: BuildOnDevice<AutoDevice, f32>,
 {
     let file_name_best = format!("{}/best.safetensors", data_dir);

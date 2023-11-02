@@ -38,7 +38,8 @@ pub trait Game: Clone + Debug {
     type Move: Copy + Debug + Display + Hash + Eq;
     type Board: Eq;
 
-    type BoardSize: ConstDim;
+    type BoardSizeX: ConstDim;
+    type BoardSizeY: ConstDim;
     type TotalBoardSize: ConstDim;
 
     const CHANNELS: usize;
@@ -47,7 +48,7 @@ pub trait Game: Clone + Debug {
 
     fn new() -> Self;
     fn print(&self);
-    fn to_nn_input(&self) -> Tensor<(Const<{Self::CHANNELS}>, Self::BoardSize, Self::BoardSize), f32, AutoDevice>;
+    fn to_nn_input(&self) -> Tensor<(Const<{Self::CHANNELS}>, Self::BoardSizeX, Self::BoardSizeY), f32, AutoDevice>;
     fn get_board(&self) -> Self::Board;
     fn legal_moves(&self) -> Vec<Self::Move>;
     fn make_move(&mut self, m: Self::Move);

@@ -18,7 +18,7 @@ where [(); G::TOTAL_MOVES]: Sized{
 
 impl<G: Game> ActionNode<G>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
     [(); G::TOTAL_MOVES]: Sized
 {
     /*
@@ -85,7 +85,7 @@ where
     fn spawn_children(
         &mut self,
         model: &impl Module<
-                Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+                Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
                 Output = (
                     Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                     Tensor<(Const<1>,), f32, AutoDevice>,
@@ -150,7 +150,7 @@ where
 }
 
 pub struct MCTS<G: Game, M: Module<
-            Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+            Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
             Output = (
                 Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                 Tensor<(Const<1>,), f32, AutoDevice>,
@@ -166,7 +166,7 @@ pub struct MCTS<G: Game, M: Module<
 }
 
 impl<'a, G: Game, M: Module<
-            Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+            Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
             Output = (
                 Tensor<(Const<{G::TOTAL_MOVES}>,), f32, AutoDevice>,
                 Tensor<(Const<1>,), f32, AutoDevice>,
@@ -174,7 +174,7 @@ impl<'a, G: Game, M: Module<
             Error = <AutoDevice as HasErr>::Err,
         >> MCTS<G, M>
 where
-    Tensor<(Const<{G::CHANNELS}>, G::BoardSize, G::BoardSize), f32, AutoDevice>: Sized,
+    Tensor<(Const<{G::CHANNELS}>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>: Sized,
 {
     fn traverse(&mut self, n: usize) {
         // n times:

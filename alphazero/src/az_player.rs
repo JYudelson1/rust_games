@@ -7,7 +7,7 @@ use std::cell::RefCell;
 pub struct AlphaZeroPlayer<
     G: Game,
     M: Module<
-        Tensor<(Const<{ G::CHANNELS }>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+        Tensor<(Const<{ G::CHANNELS }>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
         Output = (
             Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
             Tensor<(Const<1>,), f32, AutoDevice>,
@@ -21,7 +21,7 @@ pub struct AlphaZeroPlayer<
 impl<
         G: Game,
         M: Module<
-            Tensor<(Const<{ G::CHANNELS }>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+            Tensor<(Const<{ G::CHANNELS }>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
             Output = (
                 Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
                 Tensor<(Const<1>,), f32, AutoDevice>,
@@ -66,7 +66,7 @@ impl<
 impl<
         G: Game + 'static,
         M: Module<
-                Tensor<(Const<{ G::CHANNELS }>, G::BoardSize, G::BoardSize), f32, AutoDevice>,
+                Tensor<(Const<{ G::CHANNELS }>, G::BoardSizeX, G::BoardSizeY), f32, AutoDevice>,
                 Output = (
                     Tensor<(Const<{ G::TOTAL_MOVES }>,), f32, AutoDevice>,
                     Tensor<(Const<1>,), f32, AutoDevice>,
